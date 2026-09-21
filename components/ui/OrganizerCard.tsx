@@ -30,9 +30,15 @@ const TYPE_LABEL: Record<OrganizerType, string> = {
 /** A directory row: the logo tile, name, "type · category", and a small Follow button. */
 export function OrganizerCard({ name, type, category, initials, logo, following, onFollow, onClick, className }: OrganizerCardProps) {
   const showChevron = onFollow === null;
+  // When there's both a row-level onClick and a Follow button, the Follow
+  // button must not end up nested inside another <button> (invalid HTML,
+  // breaks hydration/a11y). Only render the Card itself as a <button> when
+  // there's no separate interactive control inside it; otherwise keep the
+  // Card a <div> and make just the logo/text block the clickable region.
+  const cardIsButton = Boolean(onClick) && showChevron;
 
-  return (
-    <Card as={onClick ? "button" : "div"} tight onClick={onClick} className={cx("flex! items-center gap-3", className)}>
+  const content = (
+    <>
       <OrgLogo name={name} initials={initials} type={type} src={logo} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="truncate text-[15px] font-semibold leading-5 text-ink">{name}</div>
@@ -40,6 +46,29 @@ export function OrganizerCard({ name, type, category, initials, logo, following,
           {TYPE_LABEL[type]} · {category}
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <Card as={cardIsButton ? "button" : "div"} tight onClick={cardIsButton ? onClick : undefined} className={cx("flex! items-center gap-3", className)}>
+      {cardIsButton || !onClick ? (
+        content
+      ) : (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onClick();
+            }
+          }}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          {content}
+        </div>
+      )}
       {showChevron ? (
         <Icon name="chevron-right" className="flex-none text-ink-muted" />
       ) : (

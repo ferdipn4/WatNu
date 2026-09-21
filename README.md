@@ -40,8 +40,9 @@ put the body in a file and pass `--data-binary "@body.json"` instead of `-d`.
 
 ### `POST /api/ingest`
 
-Extracts event drafts from a poster image or a block of text. Nothing is saved —
-an organizer reviews the drafts first. Images must be under 4 MB decoded.
+Extracts event drafts from one or more poster images, a block of text, or both.
+Nothing is saved — an organizer reviews the drafts first. Each image must be
+under 4 MB decoded, and a request may include at most 3 images.
 
 ```bash
 curl.exe -X POST http://localhost:3000/api/ingest \
@@ -49,13 +50,28 @@ curl.exe -X POST http://localhost:3000/api/ingest \
   -d '{"text":"Neon Night at De Kroeg, vrijdag 3 oktober 22:00, Boschstraat 24, entree 7,50 euro"}'
 ```
 
-With an image, send the base64 payload (a bare base64 string or a `data:` URL):
+With a single image, send the base64 payload (a bare base64 string or a
+`data:` URL) via `imageBase64`:
 
 ```bash
 curl.exe -X POST http://localhost:3000/api/ingest \
   -H "Content-Type: application/json" \
   -d '{"imageBase64":"<base64>","mediaType":"image/png"}'
 ```
+
+For a multi-image post (e.g. an Instagram carousel), send up to 3 images via
+`images` — they are sent to the model together in one request and treated as
+slides of the same post, so the same event is never returned twice:
+
+```bash
+curl.exe -X POST http://localhost:3000/api/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"images":[{"imageBase64":"<base64 1>","mediaType":"image/png"},{"imageBase64":"<base64 2>","mediaType":"image/png"}]}'
+```
+
+If no date is visible anywhere in the images or text, the model returns
+`start: null` and lists `"start"` in `missing_fields` instead of guessing —
+today's date is only used to resolve relative dates like "next Friday".
 
 `scripts/test-ingest.ts` does the base64 encoding for you:
 

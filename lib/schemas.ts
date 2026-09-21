@@ -14,26 +14,60 @@ const isoDateTime = z
     message: "Expected an ISO 8601 date-time string.",
   });
 
+/**
+ * The AI must never guess a date. It reports an unresolved date as `null`
+ * (an empty string is treated the same way); we normalise that to `""` here
+ * so `DraftEvent.start` stays a plain `string` for every caller, same as
+ * before this field could go missing.
+ */
+const nullableIsoDateTime = z
+  .string()
+  .nullable()
+  .transform((value) => (value && value.trim() !== "" ? value.trim() : null))
+  .refine((value) => value === null || !Number.isNaN(Date.parse(value)), {
+    message: "Expected an ISO 8601 date-time string or null.",
+  })
+  .transform((value) => value ?? "");
+
 const optionalText = z
   .string()
   .nullish()
   .transform((value) => (value && value.trim() !== "" ? value.trim() : null));
 
 /** One event as extracted by the AI. Never persisted directly. */
-export const draftEventSchema = z.object({
-  title: z.string().min(1),
-  start: isoDateTime,
-  location_name: optionalText,
-  address: optionalText,
-  category: eventCategorySchema,
-  price_eur: z.coerce.number().min(0).default(0),
-  description: z.string().min(1),
-  original_language: z.string().min(1).default("unknown"),
-  organizer_slug: optionalText,
-  newcomer_friendly: z.boolean().default(false),
-  missing_fields: z.array(z.string()).default([]),
-  confidence: z.coerce.number().min(0).max(1).default(0.5),
-});
+export const draftEventSchema = z
+  .object({
+    title: z.string().min(1),
+    start: nullableIsoDateTime,
+    location_name: optionalText,
+    address: optionalText,
+    category: eventCategorySchema,
+    price_eur: z.coerce.number().min(0).default(0),
+    description: z.string().min(1),
+    original_language: z.string().min(1).default("unknown"),
+    organizer_slug: optionalText,
+    newcomer_friendly: z.boolean().default(false),
+    missing_fields: z.array(z.string()).default([]),
+    confidence: z.coerce.number().min(0).max(1).default(0.5),
+  })
+  .transform((draft) => {
+    // Defense in depth: enforce the "never guess a date" rule even if the
+    // model forgets to flag it itself.
+    if (!draft.start) {
+      return {
+        ...draft,
+        missing_fields: draft.missing_fields.includes("start")
+          ? draft.missing_fields
+          : [...draft.missing_fields, "start"],
+        confidence: Math.min(draft.confidence, 0.5),
+      };
+    }
+    // Same for a known date with a placeholder (20:00) time.
+    if (draft.missing_fields.includes("time")) {
+      return { ...draft, confidence: Math.min(draft.confidence, 0.7) };
+    }
+    return draft;
+  });
 
 export type DraftEvent = z.infer<typeof draftEventSchema>;
 
@@ -41,16 +75,37 @@ export const extractionResultSchema = z.object({
   events: z.array(draftEventSchema),
 });
 
+const MAX_INGEST_IMAGES = 3;
+
+const imageInputSchema = z.object({
+  imageBase64: z.string().min(1),
+  mediaType: z.enum(SUPPORTED_IMAGE_MEDIA_TYPES).optional(),
+});
+
 export const ingestRequestSchema = z
   .object({
     text: z.string().trim().min(1).optional(),
+    /** @deprecated Use `images` instead. Still accepted for one image. */
     imageBase64: z.string().min(1).optional(),
     mediaType: z.enum(SUPPORTED_IMAGE_MEDIA_TYPES).optional(),
+    images: z.array(imageInputSchema).max(MAX_INGEST_IMAGES).optional(),
   })
-  .refine((value) => Boolean(value.text || value.imageBase64), {
-    message: "Provide either `text` or `imageBase64`.",
-    path: ["text"],
-  });
+  .refine(
+    (value) => Boolean(value.text || value.imageBase64 || value.images?.length),
+    {
+      message: "Provide `text`, `imageBase64`, or `images`.",
+      path: ["text"],
+    },
+  )
+  .refine(
+    (value) =>
+      (value.imageBase64 ? 1 : 0) + (value.images?.length ?? 0) <=
+      MAX_INGEST_IMAGES,
+    {
+      message: `Send at most ${MAX_INGEST_IMAGES} images per request.`,
+      path: ["images"],
+    },
+  );
 
 export type IngestRequest = z.infer<typeof ingestRequestSchema>;
 

@@ -10,14 +10,19 @@ export const SUPPORTED_IMAGE_MEDIA_TYPES = [
 
 export type ImageMediaType = (typeof SUPPORTED_IMAGE_MEDIA_TYPES)[number];
 
+export type AskJsonImage = {
+  /** Base64 payload without the `data:` prefix. */
+  base64: string;
+  mediaType: ImageMediaType;
+};
+
 export type AskJsonInput = {
   /** The user-facing instruction. Should describe the JSON shape you expect. */
   prompt: string;
   /** Optional system prompt. A JSON-only instruction is always appended. */
   system?: string;
-  /** Base64 payload without the `data:` prefix. */
-  imageBase64?: string;
-  mediaType?: ImageMediaType;
+  /** Zero or more images sent together in one request, in order. */
+  images?: AskJsonImage[];
   maxTokens?: number;
 };
 
@@ -63,13 +68,13 @@ async function callAnthropic(
   const client = new Anthropic({ apiKey });
 
   const content: Anthropic.ContentBlockParam[] = [];
-  if (input.imageBase64) {
+  for (const image of input.images ?? []) {
     content.push({
       type: "image",
       source: {
         type: "base64",
-        media_type: input.mediaType ?? "image/jpeg",
-        data: input.imageBase64,
+        media_type: image.mediaType,
+        data: image.base64,
       },
     });
   }
@@ -96,11 +101,11 @@ async function callXai(
   const client = new OpenAI({ apiKey, baseURL: "https://api.x.ai/v1" });
 
   const content: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [];
-  if (input.imageBase64) {
+  for (const image of input.images ?? []) {
     content.push({
       type: "image_url",
       image_url: {
-        url: `data:${input.mediaType ?? "image/jpeg"};base64,${input.imageBase64}`,
+        url: `data:${image.mediaType};base64,${image.base64}`,
       },
     });
   }

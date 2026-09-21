@@ -8,10 +8,12 @@ import type { FormState } from "../_lib/types";
 function Field({
   label,
   missing,
+  note = "missing — please check",
   children,
 }: {
   label: string;
   missing: boolean;
+  note?: string;
   children: ReactNode;
 }) {
   return (
@@ -20,7 +22,7 @@ function Field({
         {label}
         {missing ? (
           <span className="ml-1 text-xs font-semibold text-yellow-700">
-            missing — please check
+            {note}
           </span>
         ) : null}
       </span>
@@ -82,10 +84,18 @@ export function PreviewForm({
         />
       </Field>
 
-      <Field label="Date & time" missing={missing.has("start")}>
+      <Field
+        label="Date & time"
+        missing={missing.has("start") || missing.has("time")}
+        note={
+          missing.has("start")
+            ? "missing — please check"
+            : "time not found — please check"
+        }
+      >
         <input
           type="datetime-local"
-          className={fieldClasses(missing.has("start"))}
+          className={fieldClasses(missing.has("start") || missing.has("time"))}
           value={form.start}
           onChange={(event) => set("start", event.target.value)}
         />

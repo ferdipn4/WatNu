@@ -1,14 +1,6 @@
 import mockEvents from "@/data/mock-events.json";
 import { getSupabaseClient } from "@/lib/supabase";
-import type { Event, EventCategory } from "@/lib/types";
-
-const CATEGORIES: EventCategory[] = [
-  "party",
-  "sport",
-  "food",
-  "culture",
-  "society",
-];
+import { EVENT_CATEGORIES, type Event, type EventCategory } from "@/lib/types";
 
 type EventRow = {
   id: string;
@@ -27,10 +19,10 @@ const SELECT_COLUMNS =
   "id, title, start, location_name, address, category, price_eur, description, source_url, image_file";
 
 function toCategory(value: string | null): EventCategory {
-  const normalised = value?.toLowerCase() ?? "";
-  return CATEGORIES.includes(normalised as EventCategory)
-    ? (normalised as EventCategory)
-    : "culture";
+  const match = EVENT_CATEGORIES.find(
+    (category) => category.toLowerCase() === value?.toLowerCase(),
+  );
+  return match ?? "Culture";
 }
 
 function toEvent(row: EventRow): Event {

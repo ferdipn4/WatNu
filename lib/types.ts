@@ -1,9 +1,13 @@
-export type EventCategory =
-  | "party"
-  | "sport"
-  | "food"
-  | "culture"
-  | "society";
+export const EVENT_CATEGORIES = [
+  "Sport",
+  "Party",
+  "Café & Food",
+  "Culture",
+  "Study & Career",
+  "Social",
+] as const;
+
+export type EventCategory = (typeof EVENT_CATEGORIES)[number];
 
 export type Event = {
   id: string;

@@ -1,19 +1,8 @@
 import { z } from "zod";
 import { SUPPORTED_IMAGE_MEDIA_TYPES } from "@/lib/ai";
+import { EVENT_CATEGORIES } from "@/lib/types";
 
-/**
- * Category vocabulary used by the API. This is intentionally separate from the
- * legacy `EventCategory` union in `lib/types.ts`, which the public feed still
- * uses.
- */
-export const EVENT_CATEGORIES = [
-  "Sport",
-  "Party",
-  "Café & Food",
-  "Culture",
-  "Study & Career",
-  "Social",
-] as const;
+export { EVENT_CATEGORIES };
 
 export const eventCategorySchema = z.enum(EVENT_CATEGORIES);
 export type ApiEventCategory = z.infer<typeof eventCategorySchema>;

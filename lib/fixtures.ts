@@ -40,6 +40,15 @@ export interface FixtureEvent {
   category: Category;
   price: number; // 0 = free
   newcomers: boolean;
+  /**
+   * A real photo URL the organizer uploaded, exactly as it would come back
+   * from `image_file` on a real event. Never a generated/illustrative
+   * graphic — when an event has no real photo, omit this and let EventCard
+   * render its compact (no-image) layout, per design/screens.md ("without
+   * it the card stays compact"). None of the sample events below set this,
+   * on purpose: it keeps the fixtures honest about what a real upload flow
+   * produces instead of implying the app draws artwork for organizers.
+   */
   image?: string;
   organizerId: string;
   promo?: FixturePromo;
@@ -193,7 +202,6 @@ export const FIXTURE_EVENTS: FixtureEvent[] = [
     category: "Party",
     price: 0,
     newcomers: true,
-    image: "salsa",
     organizerId: organizerIdBySlug("salsa-societeit"),
     promo: { label: "10% off with WatNu", code: "SALSA10", validUntil: dateForWeekday(0) },
     sourceLanguage: "nl",
@@ -226,7 +234,6 @@ export const FIXTURE_EVENTS: FixtureEvent[] = [
     category: "Sport",
     price: 0,
     newcomers: true,
-    image: "row",
     organizerId: organizerIdBySlug("maas-rowing"),
     sourceLanguage: "nl",
   },
@@ -274,7 +281,6 @@ export const FIXTURE_EVENTS: FixtureEvent[] = [
     category: "Social",
     price: 0,
     newcomers: true,
-    image: "board",
     organizerId: organizerIdBySlug("cafe-mestreech"),
     sourceLanguage: "nl",
   },
@@ -290,7 +296,6 @@ export const FIXTURE_EVENTS: FixtureEvent[] = [
     category: "Party",
     price: 8,
     newcomers: false,
-    image: "techno",
     organizerId: organizerIdBySlug("loods-maas"),
     sourceLanguage: "nl",
   },

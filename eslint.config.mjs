@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Reference material from the design handoff, not app code.
+    "watnu-design-handoff/**",
   ]),
 ]);
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/Button";
+import type { ViewEvent } from "../_lib/view-data";
 
 function escapeIcsText(value: string): string {
   return value
@@ -22,25 +23,14 @@ function slugifyFilename(title: string): string {
   return slug || "event";
 }
 
-export function AddToCalendarButton({
-  eventId,
-  title,
-  start,
-  location,
-  description,
-}: {
-  eventId: string;
-  title: string;
-  start: string;
-  location: string | null;
-  description: string | null;
-}) {
+/** Downloads an .ics with title, times, location and the event URL in the notes — pure client-side, no backend involved. */
+export function AddToCalendarButton({ event }: { event: ViewEvent }) {
   function handleClick() {
-    const startDate = new Date(start);
-    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
-    const eventUrl = `${window.location.origin}/events/${eventId}`;
+    const startDate = new Date(event.start);
+    const endDate = event.end ? new Date(event.end) : new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+    const eventUrl = `${window.location.origin}/e/${event.id}`;
 
-    const descriptionLines = [description, eventUrl].filter(
+    const descriptionLines = [event.description, eventUrl].filter(
       (line): line is string => Boolean(line && line.trim().length > 0),
     );
 
@@ -49,12 +39,12 @@ export function AddToCalendarButton({
       "VERSION:2.0",
       "PRODID:-//WatNu//Events//EN",
       "BEGIN:VEVENT",
-      `UID:${eventId}@watnu.app`,
+      `UID:${event.id}@watnu.app`,
       `DTSTAMP:${toIcsUtc(new Date())}`,
       `DTSTART:${toIcsUtc(startDate)}`,
       `DTEND:${toIcsUtc(endDate)}`,
-      `SUMMARY:${escapeIcsText(title)}`,
-      ...(location ? [`LOCATION:${escapeIcsText(location)}`] : []),
+      `SUMMARY:${escapeIcsText(event.title)}`,
+      ...(event.location ? [`LOCATION:${escapeIcsText(event.location)}`] : []),
       `DESCRIPTION:${escapeIcsText(descriptionLines.join("\n"))}`,
       "END:VEVENT",
       "END:VCALENDAR",
@@ -65,7 +55,7 @@ export function AddToCalendarButton({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${slugifyFilename(title)}.ics`;
+    link.download = `${slugifyFilename(event.title)}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -73,7 +63,7 @@ export function AddToCalendarButton({
   }
 
   return (
-    <Button type="button" variant="secondary" onClick={handleClick}>
+    <Button variant="secondary" icon="calendar" onClick={handleClick}>
       Add to calendar
     </Button>
   );

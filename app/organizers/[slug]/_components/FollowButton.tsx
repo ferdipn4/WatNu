@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/Button";
+import { Button } from "@/components/ui/Button";
 import { isFollowingOrganizer, toggleFollowOrganizer } from "@/app/_lib/store";
 
 export function FollowButton({ slug }: { slug: string }) {
@@ -15,8 +15,11 @@ export function FollowButton({ slug }: { slug: string }) {
 
   return (
     <Button
-      type="button"
-      variant={following ? "primary" : "secondary"}
+      size="lg"
+      full
+      variant={following ? "secondary" : "primary"}
+      icon={following ? "check" : undefined}
+      aria-pressed={following ? "true" : "false"}
       onClick={() => setFollowing(toggleFollowOrganizer(slug))}
     >
       {following ? "Following" : "Follow"}

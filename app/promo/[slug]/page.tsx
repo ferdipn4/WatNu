@@ -1,4 +1,4 @@
-import { fetchOrganizer } from "@/app/_lib/api-client";
+import { getViewOrganizerBySlug } from "@/app/e/_lib/view-data";
 import { getPromoForOrganizer } from "@/lib/promos";
 import { PromoRedeemed } from "./PromoRedeemed";
 
@@ -9,28 +9,16 @@ export default async function PromoPage({
 }) {
   const { slug } = await params;
   const promo = getPromoForOrganizer(slug);
-
-  let organizerName = slug;
-  try {
-    const data = await fetchOrganizer(slug);
-    organizerName = data.organizer.name;
-  } catch {
-    // Fall back to the slug if the organizer can't be loaded.
-  }
+  const organizer = await getViewOrganizerBySlug(slug);
+  const organizerName = organizer?.name ?? slug;
 
   if (!promo) {
     return (
-      <div className="mx-auto flex w-full max-w-[480px] flex-col items-center gap-3 px-4 py-16 text-center">
-        <p className="text-sm text-muted">No promo found for this organizer.</p>
+      <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col items-center justify-center gap-2 px-6 text-center">
+        <p className="t-body text-ink-muted">No promo found for this organizer.</p>
       </div>
     );
   }
 
-  return (
-    <PromoRedeemed
-      slug={slug}
-      organizerName={organizerName}
-      promoText={promo.text}
-    />
-  );
+  return <PromoRedeemed slug={slug} organizerName={organizerName} promoText={promo.text} />;
 }

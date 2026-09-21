@@ -3,9 +3,13 @@
  * this, and there are no API routes for it. Redemption counts and stats are
  * illustrative only.
  */
+import { FIXTURE_EVENTS, FIXTURE_ORGANIZERS } from "./fixtures";
+
 export type Promo = {
   organizerSlug: string;
   text: string;
+  /** short code shown on the QR sheet for the person at the door who prefers to type it */
+  code: string;
   redeemedCount: number;
 };
 
@@ -13,20 +17,43 @@ export const PROMOS: Promo[] = [
   {
     organizerSlug: "complex-maastricht",
     text: "€2 off entry with WatNu",
+    code: "COMPLEX2",
     redeemedCount: 14,
   },
   {
     organizerSlug: "muziekgieterij",
     text: "Free drink with WatNu",
+    code: "GIETERIJ",
     redeemedCount: 23,
   },
 ];
 
+/**
+ * Looks up a promo for an organizer, first in the hardcoded demo list above,
+ * then (so the fixture organizers used across the rebuilt screens also get a
+ * working promo card + QR flow) in `lib/fixtures.ts`'s sample events.
+ */
 export function getPromoForOrganizer(
   slug: string | null | undefined,
 ): Promo | null {
   if (!slug) return null;
-  return PROMOS.find((promo) => promo.organizerSlug === slug) ?? null;
+
+  const hardcoded = PROMOS.find((promo) => promo.organizerSlug === slug);
+  if (hardcoded) return hardcoded;
+
+  const organizer = FIXTURE_ORGANIZERS.find((o) => o.slug === slug);
+  if (!organizer) return null;
+  const eventWithPromo = FIXTURE_EVENTS.find(
+    (e) => e.organizerId === organizer.id && e.promo,
+  );
+  if (!eventWithPromo?.promo) return null;
+
+  return {
+    organizerSlug: slug,
+    text: eventWithPromo.promo.label,
+    code: eventWithPromo.promo.code,
+    redeemedCount: organizer.redemptions,
+  };
 }
 
 /** localStorage key that /promo/[slug] increments on each mock redemption. */

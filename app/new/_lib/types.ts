@@ -1,16 +1,26 @@
 import type { EventCategory } from "@/lib/types";
 
-/** Editable state for the create-event preview form. */
+/** Editable state for the `/new` review form (step 3). */
 export type FormState = {
   title: string;
-  start: string;
+  /** `YYYY-MM-DD`, local to the browser. */
+  date: string;
+  /** `HH:mm`, local to the browser. */
+  startTime: string;
+  /**
+   * `HH:mm`, local to the browser. Shown per the design (`End` field on
+   * step 3) but there is no `end` column in `createEventSchema` /
+   * `supabase/schema.sql` yet, so it is never sent to the backend — kept
+   * here only so the field has somewhere to live while it's edited.
+   */
+  endTime: string;
   location_name: string;
   address: string;
   category: EventCategory;
   price_eur: string;
-  description: string;
-  organizer_slug: string;
   newcomer_friendly: boolean;
+  signup_url: string;
+  description: string;
 };
 
 export type Conflict = {
@@ -39,9 +49,11 @@ export type Suggestion = {
   evening_counts: Record<string, number>;
 };
 
-/** Response shape of POST /api/events/check. */
+/** Response shape of the real, working `POST /api/events/check`. */
 export type CheckResponse = {
   conflicts: Conflict[];
   possible_duplicates: PossibleDuplicate[];
   suggestion: Suggestion;
 };
+
+export type ImagePayload = { base64: string; mediaType: string };

@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Icon } from "@/components/ui/Icon";
 import { promoRedemptionStorageKey } from "@/lib/promos";
 import {
   readLocalStorageValue,
   writeLocalStorageValue,
 } from "@/app/_lib/use-local-storage-value";
 
+/**
+ * The redemption landing page a scanned promo QR opens. This is a demo
+ * feature: no organizer-scanning app exists, so "redeeming" just means this
+ * page loaded — it counts itself once per visit into a localStorage counter.
+ */
 export function PromoRedeemed({
   slug,
   organizerName,
@@ -27,15 +33,14 @@ export function PromoRedeemed({
   }, [slug]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[480px] flex-col items-center gap-4 px-4 py-16 text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl text-green-600">
-        ✓
+    <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col items-center justify-center gap-3 px-6 text-center">
+      <span className="grid h-16 w-16 place-items-center rounded-full bg-maas-soft text-maas">
+        <Icon name="check" size={32} />
       </span>
-      <h1 className="text-[24px] font-extrabold leading-tight text-foreground">
-        Promo redeemed. Enjoy!
-      </h1>
-      <p className="text-[15px] font-bold text-foreground">{organizerName}</p>
-      <p className="text-[13px] text-muted">{promoText}</p>
+      <h1 className="t-title text-ink">Promo redeemed. Enjoy.</h1>
+      <p className="t-body-strong text-ink">{organizerName}</p>
+      <p className="t-meta text-ink-muted">{promoText}</p>
+      <p className="t-caption text-ink-muted">Demo data — this counts towards this organizer&apos;s local redemption count only.</p>
     </div>
   );
 }

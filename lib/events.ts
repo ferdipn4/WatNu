@@ -18,10 +18,15 @@ type EventRow = {
 const SELECT_COLUMNS =
   "id, title, start, location_name, address, category, price_eur, description, source_url, image_file";
 
-function toCategory(value: string | null): EventCategory {
+function toCategory(value: string | null, title: string): EventCategory {
   const match = EVENT_CATEGORIES.find(
     (category) => category.toLowerCase() === value?.toLowerCase(),
   );
+  if (!match) {
+    console.warn(
+      `[events] Unknown category "${value}" for event "${title}"; defaulting to "Culture".`,
+    );
+  }
   return match ?? "Culture";
 }
 
@@ -34,7 +39,7 @@ function toEvent(row: EventRow): Event {
     // The events table has no coordinates yet; geocoding fills these in later.
     lat: 0,
     lng: 0,
-    category: toCategory(row.category),
+    category: toCategory(row.category, row.title),
     price: Number(row.price_eur ?? 0),
     source: row.source_url ?? "",
     image_url: row.image_file ?? "",

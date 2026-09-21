@@ -10,7 +10,6 @@ import { Icon } from "@/components/ui/Icon";
 import { TabBar, type TabBarProps } from "@/components/ui/TabBar";
 import { EVENT_CATEGORIES } from "@/lib/types";
 import { getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
-import { fixturePoster } from "./posters";
 
 export interface HomeEvent {
   id: string;
@@ -25,7 +24,7 @@ export interface HomeEvent {
   category: Category;
   price: number;
   newcomers: boolean;
-  /** fixture poster key (see ./posters), not a url */
+  /** a real uploaded photo url, when the organizer set one — never a generated illustration */
   image?: string;
 }
 
@@ -246,7 +245,7 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
                       category={event.category}
                       price={event.price}
                       newcomers={event.newcomers}
-                      image={fixturePoster(event.image)}
+                      image={event.image}
                       saved={savedIds.has(event.id)}
                       onSave={(saved) => handleSave(event.id, saved)}
                       onClick={() => router.push(`/e/${event.id}`)}

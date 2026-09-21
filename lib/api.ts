@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseClient } from "@/lib/supabase";
+import { getSupabaseClient, getSupabaseServiceClient } from "@/lib/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Error with an HTTP status attached, thrown from route helpers. */
@@ -66,4 +66,19 @@ export function requireSupabaseReadClient(): SupabaseClient {
     );
   }
   return supabase;
+}
+
+/**
+ * Service-role client for writes, with a clean 503 when Supabase is
+ * unconfigured (mirrors {@link requireSupabaseReadClient}).
+ */
+export function requireSupabaseServiceClient(): SupabaseClient {
+  try {
+    return getSupabaseServiceClient();
+  } catch {
+    throw new HttpError(
+      503,
+      "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+    );
+  }
 }

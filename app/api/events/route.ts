@@ -1,20 +1,19 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
-  EVENT_COLUMNS,
   EVENT_COLUMNS_WITH_ORGANIZER,
   HttpError,
   flattenOrganizer,
   handleRouteError,
   readJsonBody,
   requireSupabaseReadClient,
+  requireSupabaseServiceClient,
 } from "@/lib/api";
 import {
   createEventSchema,
   eventQuerySchema,
   validationError,
 } from "@/lib/schemas";
-import { getSupabaseServiceClient } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
@@ -66,18 +65,18 @@ export async function POST(request: Request) {
       return NextResponse.json(validationError(parsed.error), { status: 400 });
     }
 
-    const supabase = getSupabaseServiceClient();
+    const supabase = requireSupabaseServiceClient();
     const { data, error } = await supabase
       .from("events")
       .insert({ ...parsed.data, start: new Date(parsed.data.start).toISOString() })
-      .select(EVENT_COLUMNS)
+      .select(EVENT_COLUMNS_WITH_ORGANIZER)
       .single();
 
     if (error) {
       throw new HttpError(502, `Could not save the event: ${error.message}`);
     }
 
-    return NextResponse.json({ event: data }, { status: 201 });
+    return NextResponse.json({ event: flattenOrganizer(data) }, { status: 201 });
   } catch (error) {
     return handleRouteError(error);
   }

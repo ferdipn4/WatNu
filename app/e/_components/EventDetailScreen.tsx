@@ -42,6 +42,8 @@ export function EventDetailScreen({
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
+    // One-time hydration of client-only localStorage state after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSaved(isEventSaved(event.id));
   }, [event.id]);
 

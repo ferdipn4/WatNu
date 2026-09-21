@@ -79,7 +79,6 @@ export function isRequiredFilled(form: FormState): boolean {
 export function isValidOptionalUrl(value: string): boolean {
   if (!value.trim()) return true;
   try {
-    // eslint-disable-next-line no-new -- validity check only
     new URL(value.trim());
     return true;
   } catch {

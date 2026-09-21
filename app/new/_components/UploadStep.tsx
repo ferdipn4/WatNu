@@ -15,13 +15,16 @@ export function UploadStep({
   onSubmitText,
   onCreateManually,
   error,
+  startInPasteMode,
 }: {
   onSubmitImage: (payload: ImagePayload) => void;
   onSubmitText: (text: string) => void;
   onCreateManually: () => void;
   error?: string | null;
+  /** the reading step's "Paste text instead" recovery lands here directly */
+  startInPasteMode?: boolean;
 }) {
-  const [mode, setMode] = useState<"upload" | "paste">("upload");
+  const [mode, setMode] = useState<"upload" | "paste">(startInPasteMode ? "paste" : "upload");
   const [text, setText] = useState("");
   const [resizing, setResizing] = useState(false);
   const [resizeError, setResizeError] = useState<string | null>(null);

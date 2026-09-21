@@ -17,6 +17,8 @@ export function ProfileCard() {
   const [draft, setDraft] = useState("");
 
   useEffect(() => {
+    // One-time hydration of client-only localStorage state after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(getDisplayName());
   }, []);
 

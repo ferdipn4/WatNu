@@ -43,7 +43,6 @@ export function ReadingStep({
 
   useEffect(() => {
     if (!draft) return;
-    setRevealed(0);
     const rows = rowsFor(draft);
     const translating = isTranslatedLanguage(draft.original_language);
     const totalStages = rows.length + (translating ? 1 : 0);

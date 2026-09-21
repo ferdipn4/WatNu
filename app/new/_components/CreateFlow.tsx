@@ -27,6 +27,7 @@ export function CreateFlow() {
   const [pendingIngest, setPendingIngest] = useState<IngestPayload | null>(null);
   const [ingestError, setIngestError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [startInPasteMode, setStartInPasteMode] = useState(false);
 
   const [draft, setDraft] = useState<DraftEvent | null>(null);
   const [form, setForm] = useState<FormState>(blankForm());
@@ -57,12 +58,12 @@ export function CreateFlow() {
       });
   }, []);
 
-  // Step 2: run the real extraction once, when a payload is queued.
+  // Step 2: run the real extraction once, when a payload is queued. `draft`
+  // and `ingestError` are reset by the callers that set `pendingIngest`
+  // (below), not here, so this effect never sets state synchronously.
   useEffect(() => {
     if (!pendingIngest) return;
     let cancelled = false;
-    setDraft(null);
-    setIngestError(null);
 
     postJson<{ events: DraftEvent[] }>("/api/ingest", pendingIngest)
       .then((body) => {
@@ -88,6 +89,8 @@ export function CreateFlow() {
   function startImageIngest(payload: ImagePayload) {
     setPosterImage(`data:${payload.mediaType};base64,${payload.base64}`);
     setUploadError(null);
+    setDraft(null);
+    setIngestError(null);
     setStep(2);
     setPendingIngest({ imageBase64: payload.base64, mediaType: payload.mediaType });
   }
@@ -95,6 +98,8 @@ export function CreateFlow() {
   function startTextIngest(text: string) {
     setPosterImage(null);
     setUploadError(null);
+    setDraft(null);
+    setIngestError(null);
     setStep(2);
     setPendingIngest({ text });
   }
@@ -110,6 +115,7 @@ export function CreateFlow() {
     setPendingIngest(null);
     setIngestError(null);
     setPosterImage(null);
+    setStartInPasteMode(true);
     setStep(1);
   }
 
@@ -205,6 +211,7 @@ export function CreateFlow() {
             onSubmitText={startTextIngest}
             onCreateManually={createManually}
             error={uploadError}
+            startInPasteMode={startInPasteMode}
           />
         </StepShell>
       ) : null}

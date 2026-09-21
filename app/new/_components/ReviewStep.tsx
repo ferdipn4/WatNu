@@ -145,8 +145,8 @@ export function ReviewStep({
           type="time"
           value={form.endTime}
           onChange={(v) => set("endTime", v)}
-          missing
-          hint="Not on the poster — please add it"
+          missing={Boolean(draft)}
+          hint={draft ? "Not on the poster — please add it" : undefined}
         />
         <Field
           label="Price"

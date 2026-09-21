@@ -26,8 +26,11 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
   const [savedIds, setSavedIds] = useState<string[]>([]);
 
   useEffect(() => {
+    // One-time hydration of client-only localStorage state after mount.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setFollowedSlugs(getFollowedOrganizers());
     setSavedIds(getSavedEventIds());
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   function handleToggleSave(id: string, next: boolean) {

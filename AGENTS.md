@@ -7,3 +7,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# WatNu agent ownership
+
+These rules apply to every agent working in this repo.
+
+- `/app/api` and `/lib` belong to the backend. Do not edit unless the task says so.
+- `/app` (pages) and `/components` belong to the frontend.
+- Never change `/lib/types.ts` without explicit instruction.
+- Keep changes small and in the files the task is about.

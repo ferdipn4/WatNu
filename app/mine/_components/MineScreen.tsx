@@ -12,6 +12,7 @@ import { getFollowedOrganizers, getSavedEventIds, toggleSavedEvent } from "@/app
 import { renderDemoPoster } from "@/app/e/_lib/demo-posters";
 import { dayHeaderLabel, dayKey, formatTime } from "@/app/e/_lib/format";
 import type { ViewEvent, ViewOrganizer } from "@/app/e/_lib/view-data";
+import { resolveEventImage } from "@/components/ui/EventPoster";
 import { ProfileCard } from "./ProfileCard";
 
 function startOfToday(): Date {
@@ -146,8 +147,9 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
                     {dayEvents.map((event) => {
                       const start = new Date(event.start);
                       const end = event.end ? new Date(event.end) : null;
-                      const poster = renderDemoPoster(event.image);
-                      const image = poster ?? (typeof event.image === "string" ? event.image : undefined);
+                      const demoPoster = renderDemoPoster(event.image);
+                      const realImage = typeof event.image === "string" && !demoPoster ? event.image : undefined;
+                      const image = demoPoster ?? resolveEventImage(realImage, event.category, event.title);
                       return (
                         <EventCard
                           key={event.id}

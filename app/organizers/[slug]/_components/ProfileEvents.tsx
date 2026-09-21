@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EventCard } from "@/components/ui/EventCard";
+import { resolveEventImage } from "@/components/ui/EventPoster";
 import { getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
 import type { OrganizerEventCardProps } from "../../_lib/adapt";
 
@@ -42,7 +43,7 @@ export function ProfileEvents({ events }: { events: OrganizerEventCardProps[] })
           category={event.category}
           price={event.price}
           newcomers={event.newcomers}
-          image={event.image}
+          image={resolveEventImage(event.image, event.category, event.title)}
           saved={savedIds.has(event.id)}
           onSave={(saved) => handleSave(event.id, saved)}
           onClick={() => router.push(`/e/${event.id}`)}

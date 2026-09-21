@@ -11,6 +11,7 @@ import { Toast } from "@/components/ui/Toast";
 import { isEventSaved, toggleSavedEvent } from "@/app/_lib/store";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import { PromoSheet } from "./PromoSheet";
+import { EventPoster } from "@/components/ui/EventPoster";
 import { renderDemoPoster } from "../_lib/demo-posters";
 import { factClockText } from "../_lib/format";
 import type { ViewEvent, ViewOrganizer } from "../_lib/view-data";
@@ -77,15 +78,21 @@ export function EventDetailScreen({
   const start = new Date(event.start);
   const end = event.end ? new Date(event.end) : null;
   const free = event.price === 0;
-  const poster = renderDemoPoster(event.image);
-  const hasImage = !!event.image;
+  const demoPoster = renderDemoPoster(event.image);
+  const realPhoto = typeof event.image === "string" && !demoPoster ? event.image : undefined;
+  const hero = demoPoster ?? (realPhoto ? (
+    // eslint-disable-next-line @next/next/no-img-element -- an organizer's own uploaded photo, not an optimizable local asset
+    <img src={realPhoto} alt="" className="block h-full w-full object-cover" />
+  ) : (
+    <EventPoster category={event.category} title={event.title} />
+  ));
   const mapQuery = encodeURIComponent(event.address || event.location);
 
   const backButton = (
     <Button
       iconOnly
       round
-      onImage={hasImage}
+      onImage
       variant="secondary"
       icon="arrow-left"
       aria-label="Back"
@@ -93,13 +100,13 @@ export function EventDetailScreen({
     />
   );
   const shareButton = (
-    <Button iconOnly round onImage={hasImage} variant="secondary" icon="share" aria-label="Share" onClick={handleShare} />
+    <Button iconOnly round onImage variant="secondary" icon="share" aria-label="Share" onClick={handleShare} />
   );
   const saveIconButton = (
     <Button
       iconOnly
       round
-      onImage={hasImage}
+      onImage
       variant="secondary"
       icon={<Icon name="bookmark" filled={saved} className={saved ? "text-accent" : undefined} />}
       aria-label={saved ? "Saved" : "Save"}
@@ -110,30 +117,16 @@ export function EventDetailScreen({
 
   return (
     <div className="flex flex-col pb-8">
-      {hasImage ? (
-        <div className="relative mx-4 mt-1 aspect-[16/10] overflow-hidden rounded-3xl bg-surface-sunken">
-          {poster ??
-            (typeof event.image === "string" ? (
-              // eslint-disable-next-line @next/next/no-img-element -- an organizer's own uploaded photo, not an optimizable local asset
-              <img src={event.image} alt="" className="block h-full w-full object-cover" />
-            ) : null)}
-          <div className="absolute inset-x-3 top-3 flex items-center justify-between">
-            {backButton}
-            <span className="flex gap-2">
-              {shareButton}
-              {saveIconButton}
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="flex h-[52px] flex-none items-center justify-between gap-2 px-3">
+      <div className="relative mx-4 mt-1 aspect-[16/10] overflow-hidden rounded-3xl bg-surface-sunken">
+        {hero}
+        <div className="absolute inset-x-3 top-3 flex items-center justify-between">
           {backButton}
           <span className="flex gap-2">
             {shareButton}
             {saveIconButton}
           </span>
         </div>
-      )}
+      </div>
 
       <div className="flex flex-col gap-3.5 px-4 pt-4">
         <div className="flex flex-wrap gap-1">

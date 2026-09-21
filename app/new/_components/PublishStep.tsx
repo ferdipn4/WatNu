@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { EventCard } from "@/components/ui/EventCard";
+import { resolveEventImage } from "@/components/ui/EventPoster";
 import { WarningPanel } from "@/components/ui/WarningPanel";
 import { combineDateTime, formatShortDate, formatTime, weekdayName } from "../_lib/datetime";
 import type { CheckResponse, Conflict, FormState } from "../_lib/types";
@@ -75,7 +76,7 @@ export function PublishStep({
         organizer={organizerName || form.location_name || "—"}
         category={form.category}
         price={price}
-        image={posterImage ?? undefined}
+        image={resolveEventImage(posterImage, form.category, form.title || "Untitled event")}
         newcomers={form.newcomer_friendly}
         onSave={null}
       />

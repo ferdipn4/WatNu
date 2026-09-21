@@ -1,13 +1,26 @@
-export default function MePage() {
+import { PageHeader } from "@/components/PageHeader";
+import { fetchEvents } from "@/app/_lib/api-client";
+import { MyWatNuContent } from "@/app/me/_components/MyWatNuContent";
+
+export default async function MePage() {
+  let events: Awaited<ReturnType<typeof fetchEvents>> = [];
+  let loadError: string | null = null;
+
+  try {
+    events = await fetchEvents();
+  } catch (error) {
+    loadError = error instanceof Error ? error.message : "Could not load events.";
+  }
+
   return (
-    <div className="mx-auto flex w-full max-w-[390px] flex-col gap-4 px-4 py-6">
-      <header>
-        <h1 className="text-2xl font-semibold">My WatNu</h1>
-      </header>
-      <p className="text-sm text-zinc-600">
-        Saved events and profile settings are not built yet. This is just the
-        tab skeleton.
-      </p>
+    <div className="mx-auto flex w-full max-w-[480px] flex-col gap-5 px-4 py-6">
+      <PageHeader title="My WatNu" />
+
+      {loadError ? (
+        <p className="text-sm text-red-600">{loadError}</p>
+      ) : (
+        <MyWatNuContent events={events} />
+      )}
     </div>
   );
 }

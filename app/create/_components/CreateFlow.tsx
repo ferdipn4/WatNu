@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DraftEvent } from "@/lib/schemas";
 import type { ApiOrganizer } from "@/app/_lib/types";
+import { Button } from "@/components/Button";
 import { draftToForm, formToCheckPayload, formToCreatePayload } from "../_lib/form";
 import type { CheckResponse, FormState } from "../_lib/types";
 import { UploadStep } from "./UploadStep";
@@ -121,7 +122,7 @@ export function CreateFlow({ organizers }: { organizers: ApiOrganizer[] }) {
   }
 
   if (step === "loading") {
-    return <p className="text-sm text-zinc-600">Reading your poster…</p>;
+    return <p className="text-sm text-muted">Reading your poster…</p>;
   }
 
   if (!draft || !form) return null;
@@ -139,14 +140,14 @@ export function CreateFlow({ organizers }: { organizers: ApiOrganizer[] }) {
 
       {checkError ? <p className="text-sm text-red-600">{checkError}</p> : null}
 
-      <button
+      <Button
         type="button"
-        className="border border-zinc-900 px-4 py-2 text-sm font-semibold disabled:opacity-40"
+        variant="secondary"
         disabled={checking || !form.title || !form.start}
         onClick={handleCheck}
       >
         {checking ? "Checking…" : "Check & publish"}
-      </button>
+      </Button>
 
       {checkResult ? (
         <>
@@ -154,14 +155,9 @@ export function CreateFlow({ organizers }: { organizers: ApiOrganizer[] }) {
           {publishError ? (
             <p className="text-sm text-red-600">{publishError}</p>
           ) : null}
-          <button
-            type="button"
-            className="border border-zinc-900 bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-            disabled={publishing}
-            onClick={handlePublish}
-          >
+          <Button type="button" disabled={publishing} onClick={handlePublish}>
             {publishing ? "Publishing…" : "Publish"}
-          </button>
+          </Button>
         </>
       ) : null}
     </div>

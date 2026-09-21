@@ -18,8 +18,8 @@ export function CheckResults({ result }: { result: CheckResponse }) {
   return (
     <div className="flex flex-col gap-3">
       {hasConflicts ? (
-        <div className="border border-amber-400 bg-amber-50 p-3 text-sm">
-          <p className="font-semibold text-amber-800">Scheduling conflicts</p>
+        <div className="rounded-card border border-amber-300 bg-amber-50 p-3 text-sm">
+          <p className="font-bold text-amber-800">Scheduling conflicts</p>
           <ul className="mt-1 flex flex-col gap-1">
             {result.conflicts.map((conflict) => (
               <li key={conflict.id}>
@@ -33,8 +33,8 @@ export function CheckResults({ result }: { result: CheckResponse }) {
       ) : null}
 
       {hasDuplicates ? (
-        <div className="border border-red-400 bg-red-50 p-3 text-sm">
-          <p className="font-semibold text-red-800">Possible duplicates</p>
+        <div className="rounded-card border border-red-300 bg-red-50 p-3 text-sm">
+          <p className="font-bold text-red-800">Possible duplicates</p>
           <ul className="mt-1 flex flex-col gap-1">
             {result.possible_duplicates.map((duplicate) => (
               <li key={duplicate.id}>
@@ -48,13 +48,13 @@ export function CheckResults({ result }: { result: CheckResponse }) {
       ) : null}
 
       {!hasConflicts && !hasDuplicates ? (
-        <div className="border border-green-400 bg-green-50 p-3 text-sm text-green-800">
+        <div className="rounded-card border border-green-300 bg-green-50 p-3 text-sm text-green-800">
           No conflicts or duplicates found.
         </div>
       ) : null}
 
-      <div className="border border-zinc-300 bg-zinc-50 p-3 text-sm">
-        <p className="font-semibold">Suggestion</p>
+      <div className="rounded-card border border-border bg-surface p-3 text-sm text-foreground">
+        <p className="font-bold">Suggestion</p>
         <p>{result.suggestion.message}</p>
       </div>
     </div>

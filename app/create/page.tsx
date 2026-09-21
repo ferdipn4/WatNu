@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/PageHeader";
 import { fetchOrganizers } from "@/app/_lib/api-client";
 import { CreateFlow } from "./_components/CreateFlow";
 
@@ -13,10 +14,11 @@ export default async function CreatePage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[390px] flex-col gap-4 px-4 py-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Create</h1>
-      </header>
+    <div className="mx-auto flex w-full max-w-[480px] flex-col gap-5 px-4 py-6">
+      <PageHeader
+        title="Create"
+        subtitle="Upload a poster or paste event text"
+      />
 
       {loadError ? (
         <p className="text-sm text-red-600">

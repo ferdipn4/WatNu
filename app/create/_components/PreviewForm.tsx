@@ -33,8 +33,8 @@ function Field({
 
 function fieldClasses(missing: boolean) {
   return [
-    "border p-2 text-sm",
-    missing ? "border-yellow-500 bg-yellow-50" : "border-zinc-300",
+    "rounded-[12px] border border-border p-2 text-sm",
+    missing ? "bg-yellow-50" : "bg-card",
   ].join(" ");
 }
 
@@ -68,11 +68,11 @@ export function PreviewForm({
       onSubmit={(event) => event.preventDefault()}
     >
       {isTranslated ? (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted">
           Translated from {originalLanguage}.
         </p>
       ) : null}
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-muted">
         Extraction confidence: {Math.round(confidence * 100)}%
       </p>
 

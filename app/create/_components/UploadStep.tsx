@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Button } from "@/components/Button";
 import { resizeImageFile } from "../_lib/resize-image";
 
 type ImagePayload = { base64: string; mediaType: string };
@@ -63,7 +64,7 @@ export function UploadStep({
   return (
     <div className="flex flex-col gap-4">
       <label
-        className="flex h-48 cursor-pointer flex-col items-center justify-center gap-2 border-2 border-dashed border-zinc-300 p-4 text-center text-sm text-zinc-500"
+        className="flex h-48 cursor-pointer flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-border bg-surface p-4 text-center text-sm text-muted"
         onDrop={(event) => {
           event.preventDefault();
           void handleFile(event.dataTransfer.files?.[0]);
@@ -75,11 +76,13 @@ export function UploadStep({
           <img
             src={imagePreview}
             alt="Selected poster"
-            className="h-full max-h-40 object-contain"
+            className="h-full max-h-40 rounded-[12px] object-contain"
           />
         ) : (
           <>
-            <span>Tap to upload a screenshot or poster</span>
+            <span className="font-bold text-foreground">
+              Tap to upload a screenshot or poster
+            </span>
             <span className="text-xs">or drag and drop an image here</span>
           </>
         )}
@@ -92,26 +95,26 @@ export function UploadStep({
         />
       </label>
 
-      {resizing ? <p className="text-xs text-zinc-500">Resizing image…</p> : null}
+      {resizing ? <p className="text-xs text-muted">Resizing image…</p> : null}
       {resizeError ? <p className="text-xs text-red-600">{resizeError}</p> : null}
       {imagePayload ? (
         <button
           type="button"
-          className="self-start text-xs underline"
+          className="self-start text-xs font-bold text-accent underline"
           onClick={removeImage}
         >
           Remove image
         </button>
       ) : null}
 
-      <div className="flex items-center gap-2 text-xs text-zinc-400">
-        <span className="h-px flex-1 bg-zinc-200" />
+      <div className="flex items-center gap-2 text-xs text-muted">
+        <span className="h-px flex-1 bg-border" />
         or
-        <span className="h-px flex-1 bg-zinc-200" />
+        <span className="h-px flex-1 bg-border" />
       </div>
 
       <textarea
-        className="min-h-32 border border-zinc-300 p-2 text-sm disabled:bg-zinc-100"
+        className="min-h-32 rounded-[12px] border border-border bg-card p-2 text-sm disabled:bg-surface"
         placeholder="Paste the event text instead…"
         value={text}
         onChange={(event) => setText(event.target.value)}
@@ -120,14 +123,13 @@ export function UploadStep({
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-      <button
+      <Button
         type="button"
-        className="border border-zinc-900 bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
         disabled={disabled || resizing || !canContinue}
         onClick={handleContinue}
       >
         Extract event
-      </button>
+      </Button>
     </div>
   );
 }

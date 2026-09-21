@@ -1,19 +1,35 @@
-// app/page.tsx — "/" Home ("This week"). Data source: lib/fixtures.ts (see
-// design/screens.md "1 · Home"). Fixtures are an explicitly allowed stand-in
-// for /api/events until every screen is wired to the real backend.
-import { FIXTURE_EVENTS, fixtureOrganizerById } from "@/lib/fixtures";
+// app/page.tsx — "/" Home ("This week"). Shares the same read model as
+// My WatNu and Event detail (`getViewEvents` in app/e/_lib/view-data.ts):
+// real API data first, `lib/fixtures.ts` as the fallback when the API isn't
+// configured or has no events yet. Using the same source everywhere keeps
+// event ids consistent, so a card tapped here always resolves on /e/[id].
+import { getViewEvents, type ViewEvent } from "@/app/e/_lib/view-data";
 import { HomeScreen, type HomeEvent } from "./_components/HomeScreen";
 
-function toHomeEvent(event: (typeof FIXTURE_EVENTS)[number]): HomeEvent {
-  const organizer = fixtureOrganizerById(event.organizerId);
+const AMSTERDAM_TZ = "Europe/Amsterdam";
+
+function amsterdamDateKey(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: AMSTERDAM_TZ }).format(new Date(iso));
+}
+
+function amsterdamTimeKey(iso: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: AMSTERDAM_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
+}
+
+function toHomeEvent(event: ViewEvent): HomeEvent {
   return {
     id: event.id,
     title: event.title,
-    date: event.date,
-    time: event.start,
-    endTime: event.end,
+    date: amsterdamDateKey(event.start),
+    time: amsterdamTimeKey(event.start),
+    endTime: event.end ? amsterdamTimeKey(event.end) : undefined,
     location: event.location,
-    organizer: organizer?.name ?? "",
+    organizer: event.organizerName,
     category: event.category,
     price: event.price,
     newcomers: event.newcomers,
@@ -21,7 +37,7 @@ function toHomeEvent(event: (typeof FIXTURE_EVENTS)[number]): HomeEvent {
   };
 }
 
-export default function Home() {
-  const events = FIXTURE_EVENTS.map(toHomeEvent);
-  return <HomeScreen events={events} />;
+export default async function Home() {
+  const events = await getViewEvents();
+  return <HomeScreen events={events.map(toHomeEvent)} />;
 }

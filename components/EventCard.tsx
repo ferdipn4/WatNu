@@ -1,4 +1,6 @@
-import type { Event } from "@/lib/types";
+import Link from "next/link";
+import type { ApiEvent } from "@/app/_lib/types";
+import { Chip } from "@/components/Chip";
 
 function formatWhen(iso: string) {
   return new Intl.DateTimeFormat("en-GB", {
@@ -11,33 +13,32 @@ function formatWhen(iso: string) {
   }).format(new Date(iso));
 }
 
-function formatPrice(price: number) {
-  if (price === 0) return "Free";
+function formatPrice(price: number | string | null) {
+  const value = Number(price ?? 0);
+  if (!value) return "Free";
   return new Intl.NumberFormat("en-NL", {
     style: "currency",
     currency: "EUR",
-  }).format(price);
+  }).format(value);
 }
 
-export function EventCard({ event }: { event: Event }) {
+export function EventCard({ event }: { event: ApiEvent }) {
   return (
-    <article className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={event.image_url}
-        alt=""
-        className="h-40 w-full object-cover"
-      />
-      <div className="flex flex-col gap-2 p-3">
+    <Link href={`/events/${event.id}`} className="block">
+      <article className="flex flex-col gap-1 border border-zinc-200 p-3">
         <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
-          <span className="uppercase tracking-wide">{event.category}</span>
-          <span>{formatPrice(event.price)}</span>
+          {event.category ? <Chip label={event.category} /> : null}
+          <span>{formatPrice(event.price_eur)}</span>
         </div>
         <h2 className="text-base font-semibold leading-snug">{event.title}</h2>
-        <p className="text-sm text-zinc-600">{formatWhen(event.datetime)}</p>
-        <p className="text-sm text-zinc-600">{event.location_name}</p>
-        <p className="text-sm text-zinc-700">{event.description}</p>
-      </div>
-    </article>
+        <p className="text-sm text-zinc-600">{formatWhen(event.start)}</p>
+        <p className="text-sm text-zinc-600">
+          {event.location_name ?? event.address ?? "Location TBA"}
+        </p>
+        {event.organizer_name ? (
+          <p className="text-sm text-zinc-500">by {event.organizer_name}</p>
+        ) : null}
+      </article>
+    </Link>
   );
 }

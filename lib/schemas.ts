@@ -34,6 +34,15 @@ const optionalText = z
   .nullish()
   .transform((value) => (value && value.trim() !== "" ? value.trim() : null));
 
+/** A URL when present, `null` when absent — never required, never invented. */
+const optionalUrl = z
+  .string()
+  .nullish()
+  .transform((value) => (value && value.trim() !== "" ? value.trim() : null))
+  .refine((value) => value === null || z.string().url().safeParse(value).success, {
+    message: "Expected a URL or null.",
+  });
+
 /** One event as extracted by the AI. Never persisted directly. */
 export const draftEventSchema = z
   .object({
@@ -46,6 +55,7 @@ export const draftEventSchema = z
     description: z.string().min(1),
     original_language: z.string().min(1).default("unknown"),
     organizer_slug: optionalText,
+    signup_url: optionalUrl,
     newcomer_friendly: z.boolean().default(false),
     missing_fields: z.array(z.string()).default([]),
     confidence: z.coerce.number().min(0).max(1).default(0.5),

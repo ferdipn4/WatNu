@@ -1,0 +1,45 @@
+<!-- @dsCard group="Core" height=130 subtitle="filter chips (md) and static tags (sm)" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chip — preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var W = window.WatNu, h = React.createElement;
+  function Chips() {
+    var s = React.useState({ Weekend: true, Sport: true });
+    var sel = s[0], setSel = s[1];
+    function chip(label, icon) {
+      return h(W.Chip, { key: label, label: label, icon: icon, selected: !!sel[label], onClick: function () { var n = Object.assign({}, sel); n[label] = !n[label]; setSel(n); } });
+    }
+    return h('div', { className: 'wn-chip-row', style: { padding: '16px 16px 8px', flexWrap: 'wrap', overflow: 'visible' } },
+      chip('Today'), chip('Weekend'), chip('Free'),
+      h('span', { key: 'sep', className: 'wn-chip-sep' }),
+      chip('Sport'), chip('Party'), chip('Café & Food'), chip('Culture'), chip('Study & Career'), chip('Social')
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h(React.Fragment, null,
+      h(Chips),
+      h('div', { className: 'wn-preview-row', style: { paddingTop: 8 } },
+        h('span', { className: 'wn-caption', style: { width: 64 } }, 'Tags'),
+        h(W.Chip, { size: 'sm', label: 'Party' }),
+        h(W.Chip, { size: 'sm', label: 'Study & Career' }),
+        h(W.Chip, { size: 'sm', tone: 'maas', label: 'Free' }),
+        h(W.Chip, { size: 'sm', tone: 'maas', label: 'Newcomers welcome' }),
+        h(W.Chip, { size: 'sm', tone: 'accent', icon: 'ticket', label: '10% off' }),
+        h(W.Chip, { size: 'sm', tone: 'warn', icon: 'warning', label: 'Check' }),
+        h(W.Chip, { size: 'sm', tone: 'ink', label: 'Tonight' }),
+        h(W.Chip, { size: 'sm', tone: 'soon', label: 'Soon' })
+      )
+    )
+  );
+</script>
+</body>
+</html>

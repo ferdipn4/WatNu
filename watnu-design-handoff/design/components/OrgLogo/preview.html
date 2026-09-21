@@ -1,0 +1,30 @@
+<!-- @dsCard group="Structure" height=120 subtitle="monogram tiles by organizer type; sm · md · lg" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>OrgLogo — preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var W = window.WatNu, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h('div', { className: 'wn-preview-row', style: { alignItems: 'flex-end' } },
+      h(W.OrgLogo, { name: 'Salsa Sociëteit', type: 'association', size: 'lg' }),
+      h(W.OrgLogo, { name: 'Maas Rowing', type: 'association' }),
+      h(W.OrgLogo, { name: 'Café Mestreech', type: 'cafe' }),
+      h(W.OrgLogo, { name: 'Loods Maas', type: 'club' }),
+      h(W.OrgLogo, { name: 'Filmhuis Wyck', type: 'venue' }),
+      h(W.OrgLogo, { name: 'SBE Career Club', initials: 'SC', type: 'association', size: 'sm' }),
+      h(W.OrgLogo, { name: 'Bar Boekhandel', initials: 'BB', type: 'cafe', size: 'sm' }),
+      h('span', { className: 'wn-avatars' }, h(W.OrgLogo, { name: 'Salsa Sociëteit', size: 'sm', round: true }), h(W.OrgLogo, { name: 'Maas Rowing', size: 'sm', round: true }), h(W.OrgLogo, { name: 'Loods Maas', type: 'club', size: 'sm', round: true })),
+      h('span', { className: 'wn-meta', style: { marginLeft: 8 } }, 'association · café · club · venue')
+    )
+  );
+</script>
+</body>
+</html>

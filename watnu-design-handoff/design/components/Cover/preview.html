@@ -1,0 +1,52 @@
+<!-- @dsCard height=300 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WatNu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--surface); color: var(--ink); font-family: var(--font-sans); overflow: hidden; }
+  .cover { position: relative; width: 960px; height: 300px; overflow: hidden; }
+  .art { position: absolute; top: 0; left: 480px; width: 480px; height: 300px; overflow: hidden; }
+  .art svg { display: block; width: 480px; height: 300px; }
+  .accent { fill: var(--accent); }
+  .maas { fill: var(--maas); }
+  .deep { fill: var(--ink); }
+  .tint { fill: var(--accent-soft); }
+  .blk { rx: var(--radius-lg); }
+  .wave { fill: none; stroke: var(--surface); stroke-width: 8; stroke-linecap: round; }
+  .words { position: absolute; left: var(--space-6); bottom: var(--space-6); max-width: 440px; }
+  .name { margin: 0; font-family: var(--font-display); font-size: 120px; line-height: .9; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
+  .tag { margin: var(--space-3) 0 0 6px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--ink-muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 300" width="480" height="300">
+<!--
+  blocks      accent 176×240 bled off the top (the one bold colour, largest) · maas 176×80 bled off the bottom (the river, second) · ink 300×232 bled off the right (dark surface) · accent-soft 300×40 strip bled off top and right (the tint) — ≈36% of 960×300
+  arrangement one tall accent slab with the maas block under it, the ink slab beside them, a tint strip above the ink; gutters space-4 (16)
+  pattern     the Maas as three waves of semicircles at radius-xl (r 24, 48px pitch), stacked space-6 (24) apart, cut from the blocks in the ground colour — "the river Maas as the second hue"; nothing else in the app curves this way, so the wave is the one motif
+  scales      block sides are space multiples (176 = 11×16, 240 = 15×16, 80 = 5×16, 300, 232, 40); corners radius-lg (16); wave radius radius-xl (24); wave stroke space-2 (8); row pitch space-6 (24)
+-->
+<rect class="accent blk" x="16" y="-16" width="176" height="240" rx="16"/>
+<rect class="maas blk" x="16" y="240" width="176" height="80" rx="16"/>
+<rect class="tint blk" x="208" y="-16" width="300" height="40" rx="16"/>
+<rect class="deep blk" x="208" y="40" width="300" height="232" rx="16"/>
+<path class="wave" d="M0 136a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0"/>
+<path class="wave" d="M0 160a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0"/>
+<path class="wave" d="M0 184a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0a24 24 0 0 0 48 0a24 24 0 0 1 48 0"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">WatNu</h1>
+<p class="tag">What's on in Maastricht this week.</p>
+</div>
+</div>
+</body>
+</html>

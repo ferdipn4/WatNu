@@ -1,0 +1,45 @@
+---
+description: WatNu design system — the source of truth for every UI decision in this repo (tokens, components, the five screens, copy, feature flags)
+globs:
+alwaysApply: true
+---
+
+# WatNu design rules
+
+The design lives in `design/`. It is finished and approved; implement it, do not redesign it.
+
+## Read before any UI work
+- `design/README.md` — the brand book: colour, type, spacing, radius, states, copy rules, the token sheet and the Tailwind mapping.
+- `design/screens.md` — every screen top to bottom, with the component that renders each part, routes, states and data.
+- `design/components/index.d.ts` — the exact props of the 9 components. `design/components/bundle.css` — their exact CSS (map each block to Tailwind utilities; the values are the spec).
+- `design/components/<Name>/README.md` — usage rules per component. `design/components/<Name>/preview.html` — a React (createElement) reference implementation of that component's states, and for the six screens the full screen composition.
+- `design/screenshots/<Name>-light.png` and `-dark.png` — what the result must look like.
+
+## Screens are implemented 1:1
+- Home, Organizers (directory + profile), CreateUpload (steps 1–2), CreateReview (steps 3–4), MyWatNu, EventDetail (+ QR sheet): reproduce the composition in `design/components/<Screen>/preview.html` exactly — same order of elements, same copy, same spacing, same components. Do not add sections, hero banners, tabs or cards that are not in the preview. Do not change wording.
+- Mobile first at 390px; fluid 360–430; centred 430px column above 480px. Bottom tab bar on Home, Organizers, My WatNu; a 52px top bar with a round back/close button in flows and on the detail screen.
+- Light and dark from the same markup via `data-theme` on `<html>`; never hardcode a colour, always the token variables (`var(--accent)`, Tailwind `bg-accent`, …).
+
+## Stack rules
+- Next.js 16 App Router, React 19, Tailwind v4 (CSS-first: there is NO tailwind.config.ts; the theme lives in `app/globals.css` as `@theme inline`). `app/globals.css` and `app/layout.tsx` come from `design/globals.css` and `design/layout.snippet.tsx` and are not to be changed.
+- Fonts: `next/font/google` in `app/layout.tsx` — `Bricolage_Grotesque` (display: titles, day headers, times, the stat number) and `DM_Sans` (everything else), exposed as `--font-bricolage` / `--font-dm-sans` and mapped in globals.css to the `font-display` / `font-sans` utilities. Never load fonts any other way.
+- Text styles are ready-made classes in globals.css: `t-display t-title t-heading t-time t-stat t-body t-body-strong t-meta t-label t-caption` (font, size, line-height, weight, tracking; colour comes from `text-ink` / `text-ink-muted`). Use them instead of ad-hoc `text-[15px] font-semibold` stacks.
+- Utilities to use: `bg-surface bg-surface-raised bg-surface-sunken border-line text-ink text-ink-muted bg-accent text-on-accent bg-accent-soft text-maas bg-maas-soft text-warn bg-warn-soft border-warn-line shadow-card shadow-float shadow-fab font-display font-sans rounded-lg/xl/2xl/3xl/full`. Never a raw hex or a Tailwind palette colour (no `bg-red-600`, no `text-gray-500`).
+- Icons: `lucide-react`, 1.75 stroke, names listed in `design/components/Icon/README.md`. No emoji in UI text.
+- Components live in `components/ui/` with the names and props from `index.d.ts`: Button, Chip, Card, EventCard, OrganizerCard, WarningPanel, TabBar, Field, Toast, plus OrgLogo and Icon. Build nothing else for UI; no component library.
+- The EventCard shows the organizer's image on top (16:9) when the event has one, otherwise the compact row. The detail hero is the same image.
+
+## Feature flags — the frontend says what it can do
+- `design/features.ts` is copied to `lib/features.ts` (import from `@/lib/features`). Every control that needs the backend reads its flag:
+  `live` = as designed · `local` = localStorage with the one-line hint from the screens · `soon` = stays in place, dashed with a Soon tag (Button `soon`, Chip tone `soon`, WarningPanel tone `soon`) and shows the info Toast "Not in this version yet — coming soon" on tap · `off` = not rendered.
+- When a backend endpoint does not exist yet, set the flag to `soon` — never stub fake data, never hide the control silently, never grey it out without the tag.
+- When the backend adds a feature, flip the flag; the layout must not shift (soon controls keep their exact size).
+
+## Copy rules (from design/README.md)
+- English, sentence case, no exclamation marks in UI. Times `19:30`, ranges `20:00–23:00`, dates `Thu 24 Sep`. Day headers: Today, Tomorrow, then weekday names. `€8` or the Free tag, never `€0`.
+- Six categories in this order: Sport, Party, Café & Food, Culture, Study & Career, Social. Organizer types: Student association, Café, Club, Venue.
+- AI provenance always visible: "Translated from Dutch", amber missing fields "Not on the poster — please add it", "AI guess" beside inferred fields.
+
+## Before you finish a screen
+- Compare with `design/screenshots/<Screen>-light.png` and `-dark.png` at 390px; check the tab bar, the 16px gutters, card radius 16, chip height 34, button heights 44/52.
+- Run the contrast rule: text is `ink` or `ink-muted` on surfaces, `accent`/`maas`/`warn` only on their soft tints or the surfaces (all pairs ≥ 4.5:1 in both themes).

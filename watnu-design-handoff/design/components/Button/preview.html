@@ -1,0 +1,45 @@
+<!-- @dsCard group="Core" height=300 subtitle="primary · secondary · outline · ghost · lg · sm · icon-only · soon" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Button — preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var W = window.WatNu, h = React.createElement;
+  function Row(props) { return h('div', { className: 'wn-preview-row', style: { paddingTop: 0 } }, props.children); }
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h(React.Fragment, null,
+      h('div', { className: 'wn-preview-row' },
+        h(W.Button, { variant: 'primary' }, 'Publish'),
+        h(W.Button, { variant: 'secondary', icon: 'calendar' }, 'Add to calendar'),
+        h(W.Button, { variant: 'outline' }, 'No, different'),
+        h(W.Button, { variant: 'ghost', icon: 'text' }, 'Paste text instead')
+      ),
+      h(Row, null,
+        h('div', { style: { width: 358 } }, h(W.Button, { variant: 'primary', size: 'lg', full: true }, 'Publish event')),
+        h(W.Button, { variant: 'primary', size: 'lg', disabled: true }, 'Publishing…')
+      ),
+      h(Row, null,
+        h(W.Button, { size: 'sm' }, 'Follow'),
+        h(W.Button, { size: 'sm', variant: 'secondary', icon: 'check' }, 'Following'),
+        h(W.Button, { size: 'sm', variant: 'outline' }, 'Move to Wednesday'),
+        h(W.Button, { iconOnly: true, round: true, variant: 'secondary', icon: 'bookmark', 'aria-label': 'Save' }),
+        h(W.Button, { iconOnly: true, round: true, onImage: true, variant: 'secondary', icon: 'arrow-left', 'aria-label': 'Back' }),
+        h(W.Button, { iconOnly: true, round: true, onImage: true, variant: 'secondary', icon: 'share', 'aria-label': 'Share' })
+      ),
+      h(Row, null,
+        h(W.Button, { soon: true, icon: 'calendar' }, 'Add to calendar'),
+        h(W.Button, { soon: true, size: 'sm' }, 'Export'),
+        h('span', { className: 'wn-meta' }, 'soon: the feature exists in the design but not in this build — tapping shows the "Not in this version yet" toast')
+      )
+    )
+  );
+</script>
+</body>
+</html>

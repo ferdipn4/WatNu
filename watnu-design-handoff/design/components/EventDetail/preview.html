@@ -1,0 +1,177 @@
+<!-- @dsCard group="Screens" height=930 width=880 page subtitle="event detail, and the promo QR sheet it opens" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Event detail — WatNu screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; }
+  body { overflow: hidden; }
+  .poster-text { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; }
+  .poster-small { font-family: var(--font-sans); font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var W = window.WatNu, h = React.createElement;
+var noop = function () {};
+function Status() { return h('div', { className: 'wn-status' }, h('span', null, '14:32'), h('i', { 'aria-hidden': 'true' })); }
+function Phone(props) {
+  return h('div', { className: 'wn-phone-wrap' },
+    props.caption ? h('span', { className: 'wn-caption' }, props.caption) : null,
+    h('div', { className: 'wn-phone', 'data-theme': props.theme }, h(Status), h('div', { className: 'wn-screen' }, props.children)));
+}
+function Wordmark() { return h('span', { className: 'wn-wordmark' }, h(W.Icon, { name: 'star', size: 16 }), 'WatNu'); }
+function Header(props) {
+  return h('div', { className: 'wn-header' },
+    h('div', { className: 'wn-row', style: { justifyContent: 'space-between', marginBottom: 6 } }, h(Wordmark), props.right || null),
+    h('h1', { className: 'wn-display' }, props.title),
+    props.sub ? h('p', { className: 'wn-meta', style: { marginTop: 4 } }, props.sub) : null);
+}
+function Day(props) { return h('div', { className: 'wn-day' }, h('h2', { className: 'wn-heading' }, props.name), h('span', { className: 'wn-meta' }, props.date)); }
+function TopBar(props) {
+  return h('div', { className: 'wn-topbar' },
+    h(W.Button, { iconOnly: true, round: true, variant: 'secondary', icon: props.close ? 'x' : 'arrow-left', 'aria-label': props.close ? 'Close' : 'Back' }),
+    h('h1', { className: 'wn-heading' }, props.title),
+    props.right || h('span', { style: { width: 44 } }));
+}
+function Steps(props) { return h('div', { className: 'wn-steps', 'aria-label': 'Step ' + props.on + ' of 4' }, [1, 2, 3, 4].map(function (i) { return h('i', { key: i, className: i <= props.on ? 'wn-on' : '' }); })); }
+function ChipRow(props) {
+  var sel = props.selected || {};
+  function chip(l) { return h(W.Chip, { key: l, label: l, selected: !!sel[l], onClick: noop }); }
+  return h('div', { className: 'wn-chip-row' }, chip('Today'), chip('Weekend'), chip('Free'), h('span', { key: 's', className: 'wn-chip-sep' }),
+    ['Sport', 'Party', 'Café & Food', 'Culture', 'Study & Career', 'Social'].map(chip));
+}
+var EV = {
+  salsa: { title: 'Beginners Salsa Night', time: '20:00', endTime: '23:00', location: 'Café Mestreech', organizer: 'Salsa Sociëteit', category: 'Party', price: 0, newcomers: true, poster: 'salsa' },
+  quiz: { title: 'Pub Quiz: Limburg Edition', time: '20:30', location: 'Bar Boekhandel', organizer: 'Bar Boekhandel', category: 'Café & Food', price: 3 },
+  row: { title: 'Sunrise Row on the Maas', time: '07:00', endTime: '08:30', location: 'Boathouse, Sint Pieter', organizer: 'Maas Rowing', category: 'Sport', price: 0, newcomers: true, poster: 'row' },
+  cases: { title: 'Consulting Case Workshop', time: '18:00', endTime: '20:00', location: 'SBE, Tongersestraat', organizer: 'SBE Career Club', category: 'Study & Career', price: 0 },
+  film: { title: 'Dutch Film Night (EN subtitles)', time: '20:00', location: 'Filmhuis Wyck', organizer: 'Filmhuis Wyck', category: 'Culture', price: 5 },
+  board: { title: 'Board Game Night', time: '19:30', endTime: '23:00', location: 'Café Mestreech', organizer: 'Café Mestreech', category: 'Social', price: 0, newcomers: true, poster: 'board' },
+  techno: { title: 'Techno Night: Loods Maas', time: '23:00', location: 'Loods Maas', organizer: 'Loods Maas', category: 'Party', price: 8, poster: 'techno' },
+  bachata: { title: 'Bachata Social', time: '21:00', endTime: '00:00', location: 'Café Mestreech', organizer: 'Salsa Sociëteit', category: 'Party', price: 0 }
+};
+function ev(key, extra) {
+  var p = Object.assign({ key: key, onClick: noop, onSave: noop }, EV[key], extra || {});
+  if (p.poster && p.image !== null) p.image = Poster(p.poster); else p.image = null;
+  delete p.poster;
+  return h(W.EventCard, p);
+}
+/* the organizers' own posters, as uploaded: fixed colours, they are images and do not re-theme */
+function SalsaPoster(props) {
+  return h('svg', { viewBox: '0 0 358 224', width: '100%', height: '100%', preserveAspectRatio: 'xMidYMid slice', role: 'img', 'aria-label': 'Salsa Night poster' },
+    h('rect', { width: 358, height: 224, fill: '#d01f29' }),
+    h('path', { d: 'M-10 150c40-30 80-30 120 0s80 30 120 0 80-30 120 0 40 30 60 30v60H-10z', fill: '#ffffff', opacity: .18 }),
+    h('path', { d: 'M-10 178c40-30 80-30 120 0s80 30 120 0 80-30 120 0 40 30 60 30v40H-10z', fill: '#ffffff', opacity: .28 }),
+    h('text', { x: 24, y: 88, fill: '#ffffff', fontSize: 58, className: 'poster-text' }, 'SALSA'),
+    h('text', { x: 24, y: 138, fill: 'none', stroke: '#ffffff', strokeWidth: 1.5, fontSize: 58, className: 'poster-text' }, 'NIGHT'),
+    h('text', { x: 26, y: 172, fill: '#ffffff', fontSize: 13, className: 'poster-small' }, 'elke maandag · 20:00 · Café Mestreech'));
+}
+function RowPoster() {
+  return h('svg', { viewBox: '0 0 358 201', width: '100%', height: '100%', preserveAspectRatio: 'xMidYMid slice', role: 'img', 'aria-label': 'Sunrise Row poster' },
+    h('rect', { width: 358, height: 201, fill: '#0b6b76' }),
+    h('circle', { cx: 270, cy: 92, r: 58, fill: '#ffc857' }),
+    h('path', { d: 'M-10 120c40-26 80-26 120 0s80 26 120 0 80-26 120 0 40 26 60 26v70H-10z', fill: '#083f46' }),
+    h('path', { d: 'M-10 150c40-26 80-26 120 0s80 26 120 0 80-26 120 0 40 26 60 26v40H-10z', fill: '#052a2f' }),
+    h('text', { x: 22, y: 70, fill: '#ffffff', fontSize: 40, className: 'poster-text' }, 'SUNRISE'),
+    h('text', { x: 22, y: 108, fill: '#ffffff', fontSize: 40, className: 'poster-text' }, 'ROW'),
+    h('text', { x: 24, y: 182, fill: '#ffffff', fontSize: 12, className: 'poster-small' }, 'elke dinsdag 07:00 · botenhuis Sint Pieter'));
+}
+function TechnoPoster() {
+  var dots = [];
+  for (var i = 0; i < 12; i++) for (var k = 0; k < 7; k++) dots.push(h('circle', { key: i + '-' + k, cx: 20 + i * 30, cy: 20 + k * 30, r: 2.5, fill: '#ffffff', opacity: .35 }));
+  return h('svg', { viewBox: '0 0 358 201', width: '100%', height: '100%', preserveAspectRatio: 'xMidYMid slice', role: 'img', 'aria-label': 'Loods Maas techno poster' },
+    h('rect', { width: 358, height: 201, fill: '#1a1614' }),
+    dots,
+    h('rect', { x: 0, y: 118, width: 358, height: 44, fill: '#d01f29' }),
+    h('text', { x: 22, y: 96, fill: '#ffffff', fontSize: 62, className: 'poster-text' }, 'LOODS'),
+    h('text', { x: 24, y: 149, fill: '#ffffff', fontSize: 16, className: 'poster-small' }, 'TECHNO · VR 25 SEPT · 23:00 – LAAT'));
+}
+function Poster(kind) {
+  if (kind === 'salsa') return h(SalsaPoster);
+  if (kind === 'row') return h(RowPoster);
+  if (kind === 'techno') return h(TechnoPoster);
+  if (kind === 'board') return h(BoardPoster, { width: 358, wide: true });
+  return null;
+}
+function BoardPoster(props) {
+  var w = props.width || 180, s = w / 180;
+  var attrs = props.wide ? { viewBox: '0 0 180 225', width: '100%', height: '100%', preserveAspectRatio: 'xMidYMid slice' } : { viewBox: '0 0 180 225', width: w, height: 225 * s, className: 'wn-poster' };
+  return h('svg', Object.assign({ role: 'img', 'aria-label': 'Bordspelavond poster (Dutch)' }, attrs),
+    h('rect', { width: 180, height: 225, fill: '#0b6b76' }),
+    h('circle', { cx: 150, cy: 40, r: 44, fill: '#ffffff', opacity: .16 }),
+    h('circle', { cx: 30, cy: 200, r: 60, fill: '#ffffff', opacity: .12 }),
+    h('text', { x: 16, y: 96, fill: '#ffffff', fontSize: 30, className: 'poster-text' }, 'BORDSPEL'),
+    h('text', { x: 16, y: 126, fill: '#ffffff', fontSize: 30, className: 'poster-text' }, 'AVOND'),
+    h('text', { x: 16, y: 158, fill: '#ffffff', fontSize: 11, className: 'poster-small' }, 'do 24 sept · 19:30'),
+    h('text', { x: 16, y: 176, fill: '#ffffff', fontSize: 11, className: 'poster-small' }, 'Café Mestreech'),
+    h('text', { x: 16, y: 200, fill: '#ffffff', fontSize: 11, className: 'poster-small' }, 'gratis · iedereen welkom!'));
+}
+
+var QR_D = "M0 0.5h7m1 0h1m3 0h1m1 0h3m1 0h7m-25 1h1m5 0h1m1 0h2m1 0h4m3 0h1m5 0h1m-25 1h1m1 0h3m1 0h1m2 0h1m1 0h1m1 0h1m1 0h1m2 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m3 0h1m4 0h1m2 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m2 0h3m3 0h2m1 0h1m1 0h3m1 0h1m-25 1h1m5 0h1m3 0h3m2 0h1m2 0h1m5 0h1m-25 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-15 1h1m1 0h1m1 0h2m-15 1h1m4 0h6m3 0h1m1 0h1m5 0h2m-23 1h3m3 0h3m1 0h2m2 0h2m4 0h1m-21 1h2m2 0h2m1 0h2m2 0h2m1 0h1m1 0h1m4 0h2m-24 1h2m2 0h1m3 0h1m1 0h1m1 0h1m1 0h2m1 0h1m2 0h1m-22 1h1m1 0h1m3 0h3m1 0h4m2 0h4m2 0h2m-24 1h2m2 0h2m2 0h2m2 0h1m2 0h2m2 0h1m1 0h2m-23 1h1m1 0h1m2 0h3m1 0h2m1 0h4m1 0h1m3 0h1m-22 1h1m1 0h3m2 0h1m6 0h5m-19 1h1m1 0h1m1 0h5m2 0h1m2 0h1m1 0h7m-15 1h1m1 0h3m3 0h1m3 0h2m1 0h2m-25 1h7m1 0h5m1 0h1m1 0h1m1 0h1m1 0h1m3 0h1m-25 1h1m5 0h1m2 0h4m2 0h2m3 0h1m1 0h1m1 0h1m-25 1h1m1 0h3m1 0h1m2 0h1m1 0h1m2 0h7m1 0h2m-24 1h1m1 0h3m1 0h1m2 0h3m6 0h2m2 0h1m1 0h1m-25 1h1m1 0h3m1 0h1m3 0h1m1 0h2m2 0h1m1 0h1m3 0h1m1 0h1m-25 1h1m5 0h1m1 0h4m1 0h2m2 0h3m1 0h2m-23 1h7m4 0h2m2 0h3m3 0h4";
+function Detail(props) {
+  return h(React.Fragment, null,
+    h('div', { className: 'wn-scroll', style: { paddingBottom: 24 } },
+      h('div', { className: 'wn-hero', style: { marginTop: 4 } },
+        h(SalsaPoster),
+        h('div', { className: 'wn-hero-actions' },
+          h(W.Button, { iconOnly: true, round: true, onImage: true, variant: 'secondary', icon: 'arrow-left', 'aria-label': 'Back' }),
+          h('span', { className: 'wn-row', style: { gap: 8 } },
+            h(W.Button, { iconOnly: true, round: true, onImage: true, variant: 'secondary', icon: 'share', 'aria-label': 'Share' }),
+            h(W.Button, { iconOnly: true, round: true, onImage: true, variant: 'secondary', icon: h(W.Icon, { name: 'bookmark', filled: true, className: 'wn-accent' }), 'aria-label': 'Saved', 'aria-pressed': 'true' })
+          )
+        )
+      ),
+      h('div', { className: 'wn-stack', style: { paddingTop: 16, gap: 14 } },
+        h('div', { className: 'wn-row', style: { gap: 4, flexWrap: 'wrap' } }, h(W.Chip, { size: 'sm', label: 'Party' }), h(W.Chip, { size: 'sm', tone: 'maas', label: 'Newcomers welcome' }), h(W.Chip, { size: 'sm', tone: 'accent', icon: 'ticket', label: '10% off' })),
+        h('h1', { className: 'wn-title' }, 'Beginners Salsa Night'),
+        h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+          h('div', { className: 'wn-fact' }, h(W.Icon, { name: 'clock' }), h('div', null, h('div', { className: 'wn-strong' }, 'Tonight, Mon 21 Sep · 20:00–23:00'))),
+          h('div', { className: 'wn-fact' }, h(W.Icon, { name: 'pin' }), h('div', null, h('div', { className: 'wn-strong' }, 'Café Mestreech'), h('div', { className: 'wn-meta' }, 'Rechtstraat 12, Wyck · 6 min walk from the station'))),
+          h('div', { className: 'wn-fact' }, h(W.Icon, { name: 'euro' }), h('div', null, h('div', { className: 'wn-strong wn-maas' }, 'Free'), h('div', { className: 'wn-meta' }, 'No ticket, just show up')))
+        ),
+        h('p', { className: 'wn-body' }, 'A 45-minute beginners class, then open floor until 23:00. No partner needed, English spoken, first drink on us if it is your first time.'),
+        h(W.Card, { tight: true, onClick: noop, className: 'wn-row' },
+          h(W.OrgLogo, { name: 'Salsa Sociëteit', type: 'association' }),
+          h('div', { style: { flex: 1, minWidth: 0 } }, h('div', { className: 'wn-strong' }, 'Salsa Sociëteit'), h('div', { className: 'wn-meta' }, 'Student association · 2 upcoming')),
+          h(W.Icon, { name: 'chevron-right', className: 'wn-muted' })
+        ),
+        h('div', { className: 'wn-grid-2' },
+          h(W.Button, { variant: 'secondary', icon: h(W.Icon, { name: 'bookmark', filled: true }), className: 'wn-accent' }, 'Saved'),
+          h(W.Button, { variant: 'secondary', icon: 'calendar' }, 'Add to calendar')
+        ),
+        h(W.Card, { tone: 'accent', onClick: noop, className: 'wn-row' },
+          h('span', { className: 'wn-logo wn-logo-association wn-logo-round', 'aria-hidden': 'true' }, h(W.Icon, { name: 'qr', size: 24 })),
+          h('div', { style: { flex: 1, minWidth: 0 } }, h('div', { className: 'wn-strong wn-accent' }, '10% off with WatNu'), h('div', { className: 'wn-meta' }, 'Show the QR code at the door')),
+          h(W.Icon, { name: 'chevron-right', className: 'wn-accent' })
+        )
+      )
+    ),
+    props.sheet ? h(React.Fragment, null,
+      h('div', { className: 'wn-scrim' }),
+      h('div', { className: 'wn-sheet', role: 'dialog', 'aria-label': '10% off with WatNu' },
+        h('span', { className: 'wn-sheet-handle' }),
+        h('h2', { className: 'wn-title' }, '10% off with WatNu'),
+        h('p', { className: 'wn-meta', style: { textAlign: 'center' } }, 'Salsa Sociëteit at Café Mestreech · tonight until 23:00'),
+        h('div', { className: 'wn-qr' }, h('svg', { viewBox: '0 0 25 25', shapeRendering: 'crispEdges', role: 'img', 'aria-label': 'Promo QR code' }, h('path', { d: QR_D, stroke: '#111111', strokeWidth: 1, fill: 'none' }))),
+        h('div', { className: 'wn-stat', style: { fontSize: 28, lineHeight: '32px', letterSpacing: '0.04em' } }, 'SALSA10'),
+        h('p', { className: 'wn-meta', style: { textAlign: 'center' } }, 'Show this to the person at the door'),
+        h(W.Button, { variant: 'secondary', full: true, style: { marginTop: 4 } }, 'Done')
+      )
+    ) : null
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(
+  h('div', { className: 'wn-phones' },
+    h(Phone, { caption: 'Event detail' }, h(Detail, { sheet: false })),
+    h(Phone, { caption: 'Promo QR sheet' }, h(Detail, { sheet: true }))
+  )
+);
+</script>
+</body>
+</html>

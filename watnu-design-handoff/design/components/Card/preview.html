@@ -1,0 +1,41 @@
+<!-- @dsCard group="Structure" height=490 width=390 subtitle="raised · promo (accent) · stats (maas) · upload · sunken" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card — preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script>
+  var W = window.WatNu, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h('div', { className: 'wn-preview-col' },
+      h(W.Card, { tone: 'accent', onClick: function () {}, className: 'wn-row' },
+        h('span', { className: 'wn-logo wn-logo-association wn-logo-round', 'aria-hidden': 'true' }, h(W.Icon, { name: 'ticket', size: 24 })),
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          h('div', { className: 'wn-strong wn-accent' }, '10% off with WatNu'),
+          h('div', { className: 'wn-meta' }, 'Show the QR code at the door')
+        ),
+        h(W.Icon, { name: 'chevron-right', className: 'wn-accent' })
+      ),
+      h(W.Card, { tone: 'maas', className: 'wn-row' },
+        h('div', { style: { flex: 1 } },
+          h('div', { className: 'wn-row', style: { justifyContent: 'space-between', marginBottom: 4 } }, h('span', { className: 'wn-caption wn-maas' }, 'Promo codes redeemed · Sep'), h(W.Chip, { size: 'sm', tone: 'maas', label: 'Only you see this' })),
+          h('div', { className: 'wn-row', style: { gap: 8, alignItems: 'baseline' } }, h('span', { className: 'wn-stat' }, '42'), h('span', { className: 'wn-meta wn-maas' }, '+12 vs August'))
+        )
+      ),
+      h(W.Card, { tone: 'upload', onClick: function () {} },
+        h('span', { className: 'wn-logo wn-logo-association wn-logo-round wn-logo-lg', 'aria-hidden': 'true' }, h(W.Icon, { name: 'upload', size: 28 })),
+        h('div', { className: 'wn-strong' }, 'Upload screenshot or poster'),
+        h('div', { className: 'wn-meta' }, 'An Instagram post, story or PDF poster')
+      ),
+      h(W.Card, { tone: 'sunken', tight: true }, h('div', { className: 'wn-meta' }, 'A sunken card: quiet grouping, no border.'))
+    )
+  );
+</script>
+</body>
+</html>

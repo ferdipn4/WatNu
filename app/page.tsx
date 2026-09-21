@@ -1,8 +1,8 @@
 import { EventCard } from "@/components/EventCard";
 import { getEvents } from "@/lib/events";
 
-export default function Home() {
-  const events = [...getEvents()].sort(
+export default async function Home() {
+  const events = [...(await getEvents())].sort(
     (a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime(),
   );
 

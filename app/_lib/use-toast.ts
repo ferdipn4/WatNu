@@ -8,6 +8,8 @@ export type ToastState = { tone: "info" | "done"; text: string };
 export const SOON_TOAST = "Not in this version yet — coming soon";
 /** The one `done` toast after publishing (design/README.md → States and feedback). */
 export const PUBLISHED_TOAST = "Published — it's live for everyone in Maastricht";
+/** The `done` toast after an organizer saved their profile. */
+export const PROFILE_UPDATED_TOAST = "Profile updated";
 
 const TOAST_MS = 4000;
 

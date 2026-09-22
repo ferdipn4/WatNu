@@ -29,6 +29,7 @@ import {
   Euro,
   Star,
   Loader,
+  Pencil,
   type LucideIcon,
 } from "lucide-react";
 
@@ -67,7 +68,9 @@ export type IconName =
   | "x"
   | "euro"
   | "star"
-  | "spinner";
+  | "spinner"
+  /** the one glyph beyond the handoff's 29: Edit profile on the organizer screens */
+  | "pencil";
 
 export interface IconProps {
   name: IconName;
@@ -110,6 +113,7 @@ const GLYPHS: Record<IconName, LucideIcon> = {
   euro: Euro,
   star: Star,
   spinner: Loader,
+  pencil: Pencil,
 };
 
 /** Stroke icons on a 24px grid, 1.75px stroke, round caps. The bookmark and the star are the two glyphs that fill. */

@@ -55,6 +55,7 @@ export type ViewOrganizer = {
   category: EventCategory;
   instagram?: string;
   description?: string;
+  address?: string;
   logo?: string;
   upcomingCount: number;
 };
@@ -106,6 +107,7 @@ function mapApiOrganizer(organizer: ApiOrganizer, upcomingCount: number): ViewOr
     category: asCategory(organizer.category),
     instagram: organizer.instagram_handle ?? undefined,
     description: organizer.description ?? undefined,
+    address: organizer.address ?? undefined,
     logo: organizer.logo_file ?? undefined,
     upcomingCount,
   };

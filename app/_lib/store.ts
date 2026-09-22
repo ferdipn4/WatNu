@@ -9,10 +9,10 @@ const FOLLOWED_ORGANIZERS_KEY = "watnu:followed-organizers";
 const SAVED_EVENTS_KEY = "watnu:saved-events";
 /**
  * The v1 "organizer token" from design/screens.md: the browser that published an organizer's
- * events remembers that organizer's slug, and only that browser sees the organizer-only parts
- * of the profile (the stats card). No accounts.
+ * events — or claimed the profile via "Do you run …?" — remembers that organizer's slug, and
+ * only that browser sees the organizer-only parts (the stats card, Edit profile). No accounts.
  */
-const PUBLISHED_ORGANIZERS_KEY = "watnu:published-organizers";
+const CLAIMED_ORGANIZERS_KEY = "watnu:published-organizers";
 
 function readList(key: string): string[] {
   if (typeof window === "undefined") return [];
@@ -71,13 +71,21 @@ export function toggleSavedEvent(id: string): boolean {
   return toggleInList(SAVED_EVENTS_KEY, id);
 }
 
-/** Records that this browser published as `slug` (called after a successful publish). */
-export function rememberPublishedOrganizer(slug: string): void {
-  const list = readList(PUBLISHED_ORGANIZERS_KEY);
-  if (!list.includes(slug)) writeList(PUBLISHED_ORGANIZERS_KEY, [...list, slug]);
+/** Makes this browser the organizer `slug` (after a publish, or via "Do you run …?" on the profile). */
+export function claimOrganizer(slug: string): void {
+  const list = readList(CLAIMED_ORGANIZERS_KEY);
+  if (!list.includes(slug)) writeList(CLAIMED_ORGANIZERS_KEY, [...list, slug]);
+}
+
+/** Forgets the organizer token for `slug` ("Stop managing this profile"). */
+export function releaseOrganizer(slug: string): void {
+  writeList(
+    CLAIMED_ORGANIZERS_KEY,
+    readList(CLAIMED_ORGANIZERS_KEY).filter((item) => item !== slug),
+  );
 }
 
 /** Whether this browser holds the organizer token for `slug`. */
-export function hasPublishedAs(slug: string): boolean {
-  return readList(PUBLISHED_ORGANIZERS_KEY).includes(slug);
+export function isOrganizerOf(slug: string): boolean {
+  return readList(CLAIMED_ORGANIZERS_KEY).includes(slug);
 }

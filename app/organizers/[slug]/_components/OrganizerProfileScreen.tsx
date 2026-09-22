@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Chip } from "@/components/ui/Chip";
 import { EventCard } from "@/components/ui/EventCard";
 import { resolveEventImage } from "@/components/ui/EventPoster";
 import { Icon } from "@/components/ui/Icon";
@@ -12,13 +14,14 @@ import { WarningPanel } from "@/components/ui/WarningPanel";
 import { isOff, isSoon } from "@/lib/features";
 import { TopBar } from "@/app/_components/TopBar";
 import {
+  claimOrganizer,
   getSavedEventIds,
-  hasPublishedAs,
   isFollowingOrganizer,
+  isOrganizerOf,
   toggleFollowOrganizer,
   toggleSavedEvent,
 } from "@/app/_lib/store";
-import { useToast } from "@/app/_lib/use-toast";
+import { PROFILE_UPDATED_TOAST, useToast } from "@/app/_lib/use-toast";
 import { formatTime } from "@/app/e/_lib/format";
 import type { ViewEvent, ViewOrganizer } from "@/app/e/_lib/view-data";
 
@@ -33,7 +36,11 @@ function eventCount(count: number): string {
   return count === 1 ? "1 event" : `${count} events`;
 }
 
-/** The organizer profile: 52px top bar (back, share), header row, Follow, description, the organizer-only stats, Upcoming. */
+/**
+ * The organizer profile: 52px top bar (back, share), header row, Follow, description, the
+ * organizer-only stats, Upcoming. The browser that holds the organizer token (published as them,
+ * or claimed the profile via "Do you run …?") sees Edit profile instead of Follow.
+ */
 export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewOrganizer | null; events: ViewEvent[] }) {
   const router = useRouter();
   const { toast, show, showSoon } = useToast();
@@ -47,10 +54,16 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
     if (!slug) return;
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
     setFollowing(isFollowingOrganizer(slug));
-    setIsOrganizer(hasPublishedAs(slug));
+    setIsOrganizer(isOrganizerOf(slug));
     setSavedIds(new Set(getSavedEventIds()));
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [slug]);
+
+    // Back from Edit profile with ?updated=1: the done toast, then a clean URL.
+    if (new URLSearchParams(window.location.search).get("updated") === "1") {
+      show(PROFILE_UPDATED_TOAST, "done");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [slug, show]);
 
   function goBack() {
     // Back returns to the directory with scroll and search intact (the directory keeps them in sessionStorage).
@@ -109,8 +122,17 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
   }
 
   const instagramHandle = organizer.instagram?.replace(/^@/, "");
+  const editUrl = `/organizers/${organizer.slug}/edit`;
   const saveOff = isOff("save");
   const saveSoon = isSoon("save");
+  // features.organizerProfile: local = claim + edit on this phone, soon = the controls stay and show the toast, off = students only.
+  const manageOff = isOff("organizerProfile");
+  const manageSoon = isSoon("organizerProfile");
+
+  function manageProfile() {
+    claimOrganizer(organizer!.slug);
+    router.push(editUrl);
+  }
 
   return (
     <div className="flex min-h-dvh flex-col pb-6">
@@ -138,7 +160,11 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
           </div>
         </div>
 
-        {!isOff("follow") ? (
+        {isOrganizer && !manageOff ? (
+          <Button size="lg" full variant="secondary" icon="pencil" soon={manageSoon} onSoon={showSoon} onClick={() => router.push(editUrl)}>
+            Edit profile
+          </Button>
+        ) : !isOff("follow") ? (
           <Button
             size="lg"
             full
@@ -155,7 +181,7 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
 
         {organizer.description ? <p className="t-body text-ink">{organizer.description}</p> : null}
 
-        {/* The stats card renders only for the organizer: the browser that published their events (design/screens.md §2). */}
+        {/* The stats card renders only for the organizer: the browser that holds the token (design/screens.md §2). */}
         {isOrganizer && isSoon("organizerStats") ? (
           <WarningPanel tone="soon" title="Organizer stats arrive with the next version">
             You will see how many people redeemed your code here.
@@ -194,6 +220,17 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
             })}
           </div>
         )}
+
+        {/* No accounts: the organizer claims their profile on this phone, the same way follows and saves live here. */}
+        {!isOrganizer && !manageOff ? (
+          <Card tone="sunken" tight onClick={manageSoon ? showSoon : manageProfile} className="mt-2 flex! items-center gap-3">
+            <span className="min-w-0 flex-1">
+              <span className="t-body-strong block text-ink">Do you run {organizer.name}?</span>
+              <span className="t-meta block text-ink-muted">Manage this profile. No account — this phone remembers it.</span>
+            </span>
+            {manageSoon ? <Chip size="sm" tone="soon" label="Soon" /> : <Icon name="chevron-right" className="flex-none text-ink-muted" />}
+          </Card>
+        ) : null}
       </div>
 
       {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}

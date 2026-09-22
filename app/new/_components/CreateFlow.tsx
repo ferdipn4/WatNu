@@ -6,9 +6,9 @@ import { Toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { isLive } from "@/lib/features";
 import type { DraftEvent } from "@/lib/schemas";
-import { rememberPublishedOrganizer } from "@/app/_lib/store";
+import { getJson, postJson } from "@/app/_lib/http";
+import { claimOrganizer } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
-import { getJson, postJson } from "../_lib/api";
 import { toDateInputValue, toTimeInputValue } from "../_lib/datetime";
 import { blankForm, draftToForm, formToCheckPayload, formToCreatePayload, isRequiredFilled, isValidOptionalUrl } from "../_lib/form";
 import type { CheckResponse, FormState, ImagePayload } from "../_lib/types";
@@ -197,7 +197,7 @@ export function CreateFlow() {
       const organizerSlug = draft?.organizer_slug ?? null;
       const result = await postJson<{ event: { id: string } }>("/api/events", formToCreatePayload(form, organizerSlug, posterImage));
       // v1 organizer token: this browser now counts as the organizer (design/screens.md §2).
-      if (organizerSlug) rememberPublishedOrganizer(organizerSlug);
+      if (organizerSlug) claimOrganizer(organizerSlug);
       // After publishing: Home, scrolled to the event, with the one maas toast (design/screens.md §3).
       router.push(`/?published=${encodeURIComponent(result.event.id)}`);
     } catch (error) {

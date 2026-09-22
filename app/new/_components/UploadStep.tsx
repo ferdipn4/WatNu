@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
-import { isSoon } from "@/lib/features";
+import { isOff, isSoon } from "@/lib/features";
 import { resizeImageFile } from "../_lib/resize-image";
 import type { ImagePayload } from "../_lib/types";
 
@@ -14,12 +14,15 @@ export function UploadStep({
   onSubmitImage,
   onSubmitText,
   onCreateManually,
+  onSoon,
   error,
   startInPasteMode,
 }: {
   onSubmitImage: (payload: ImagePayload) => void;
   onSubmitText: (text: string) => void;
   onCreateManually: () => void;
+  /** shows the "Not in this version yet" toast for a `soon` control */
+  onSoon: () => void;
   error?: string | null;
   /** the reading step's "Paste text instead" recovery lands here directly */
   startInPasteMode?: boolean;
@@ -51,6 +54,9 @@ export function UploadStep({
   }
 
   const uploadCopy = isSoon("pdfUpload") ? "Instagram post or story · PDF soon" : "Instagram post, story or PDF poster";
+  const aiImportSoon = isSoon("aiImport");
+  const pasteOff = isOff("pasteText");
+  const pasteSoon = isSoon("pasteText");
 
   return (
     <div className="flex flex-col gap-4 pt-2">
@@ -64,8 +70,8 @@ export function UploadStep({
       {mode === "upload" ? (
         <Card
           tone="upload"
-          onClick={() => inputRef.current?.click()}
-          onDrop={handleDrop}
+          onClick={aiImportSoon ? onSoon : () => inputRef.current?.click()}
+          onDrop={aiImportSoon ? undefined : handleDrop}
           onDragOver={(event) => event.preventDefault()}
           className="min-h-[300px] justify-center"
         >
@@ -99,14 +105,16 @@ export function UploadStep({
       {resizing ? <p className="t-caption text-ink-muted">Resizing image…</p> : null}
       {resizeError ? <p className="t-meta text-warn">{resizeError}</p> : null}
 
-      <div className="t-caption flex items-center gap-3 text-ink-muted">
-        <span className="h-px flex-1 bg-line" />
-        or
-        <span className="h-px flex-1 bg-line" />
-      </div>
+      {!pasteOff ? (
+        <div className="t-caption flex items-center gap-3 text-ink-muted">
+          <span className="h-px flex-1 bg-line" />
+          or
+          <span className="h-px flex-1 bg-line" />
+        </div>
+      ) : null}
 
-      {mode === "upload" ? (
-        <Button variant="secondary" full icon="text" onClick={() => setMode("paste")}>
+      {pasteOff ? null : mode === "upload" ? (
+        <Button variant="secondary" full icon="text" soon={pasteSoon} onSoon={onSoon} onClick={() => setMode("paste")}>
           Paste text instead
         </Button>
       ) : (

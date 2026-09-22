@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Chip } from "@/components/ui/Chip";
 import { Field } from "@/components/ui/Field";
-import { Icon } from "@/components/ui/Icon";
 import { OrganizerCard } from "@/components/ui/OrganizerCard";
-import { TabBar, type TabBarProps } from "@/components/ui/TabBar";
+import { Toast } from "@/components/ui/Toast";
+import { isOff, isSoon } from "@/lib/features";
+import { ScreenHeader } from "@/app/_components/ScreenHeader";
+import { TabScreen } from "@/app/_components/TabScreen";
 import { getFollowedOrganizers, toggleFollowOrganizer } from "@/app/_lib/store";
-import type { DirectoryOrganizer } from "../_lib/adapt";
+import { useToast } from "@/app/_lib/use-toast";
+import type { ViewOrganizer } from "@/app/e/_lib/view-data";
 
 type TypeFilter = "all" | "association" | "cafe" | "club-venue";
 
@@ -19,37 +22,63 @@ const TYPE_CHIPS: { id: TypeFilter; label: string }[] = [
   { id: "club-venue", label: "Clubs & venues" },
 ];
 
-function matchesTypeFilter(organizer: DirectoryOrganizer, filter: TypeFilter): boolean {
+/** sessionStorage key: search and chip survive the trip to a profile and back (design/screens.md §2). */
+const UI_STATE_KEY = "watnu:organizers-ui";
+
+function isTypeFilter(value: unknown): value is TypeFilter {
+  return TYPE_CHIPS.some((chip) => chip.id === value);
+}
+
+function matchesType(organizer: ViewOrganizer, filter: TypeFilter): boolean {
   if (filter === "all") return true;
   if (filter === "club-venue") return organizer.type === "club" || organizer.type === "venue";
   return organizer.type === filter;
 }
 
-export function OrganizersScreen({
-  organizers,
-  loadError,
-}: {
-  organizers: DirectoryOrganizer[];
-  loadError?: string;
-}) {
+export function OrganizersScreen({ organizers }: { organizers: ViewOrganizer[] }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // My WatNu's "Following N organizers" row opens the directory filtered to followed organizers.
+  const followingOnly = searchParams.get("following") === "1";
+  const { toast, showSoon } = useToast();
+
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [followed, setFollowed] = useState<Set<string>>(() => new Set());
+  const restored = useRef(false);
 
   useEffect(() => {
-    // One-time hydration of client-only localStorage state after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
     setFollowed(new Set(getFollowedOrganizers()));
+    try {
+      const raw = sessionStorage.getItem(UI_STATE_KEY);
+      const saved = raw ? (JSON.parse(raw) as { query?: unknown; typeFilter?: unknown }) : null;
+      if (typeof saved?.query === "string") setQuery(saved.query);
+      if (isTypeFilter(saved?.typeFilter)) setTypeFilter(saved.typeFilter);
+    } catch {
+      // No saved state, or storage unavailable — start clean.
+    }
+    restored.current = true;
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
+
+  useEffect(() => {
+    if (!restored.current) return;
+    try {
+      sessionStorage.setItem(UI_STATE_KEY, JSON.stringify({ query, typeFilter }));
+    } catch {
+      // Storage unavailable — the state simply doesn't survive the round trip.
+    }
+  }, [query, typeFilter]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return organizers
-      .filter((organizer) => matchesTypeFilter(organizer, typeFilter))
+      .filter((organizer) => !followingOnly || followed.has(organizer.slug))
+      .filter((organizer) => matchesType(organizer, typeFilter))
       .filter((organizer) => !q || organizer.name.toLowerCase().includes(q) || organizer.category.toLowerCase().includes(q))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [organizers, typeFilter, query]);
+  }, [organizers, followingOnly, followed, typeFilter, query]);
 
   function handleFollow(slug: string) {
     const isNowFollowing = toggleFollowOrganizer(slug);
@@ -61,58 +90,63 @@ export function OrganizersScreen({
     });
   }
 
-  function handleTabChange(tab: Parameters<NonNullable<TabBarProps["onChange"]>>[0]) {
-    const routes: Record<string, string> = { week: "/", organizers: "/organizers", create: "/new", mine: "/mine" };
-    router.push(routes[tab] ?? "/organizers");
+  function toggleFollowingOnly() {
+    router.replace(followingOnly ? "/organizers" : "/organizers?following=1");
   }
 
+  // features.follow: local = the button works, soon = it stays and shows the toast, off = a plain row with a chevron.
+  const followOff = isOff("follow");
+  const followSoon = isSoon("follow");
+  const onFollowFor = (slug: string) => (followOff ? null : followSoon ? () => showSoon() : () => handleFollow(slug));
+
+  const emptyCopy = followingOnly
+    ? followed.size === 0
+      ? "You don't follow anyone yet. Follow an organizer and their events show up on My WatNu."
+      : "None of the organizers you follow match this search."
+    : "No organizers match this search.";
+
   return (
-    <>
-      <div className="flex h-dvh flex-col overflow-y-auto px-4 pt-8 pb-24">
-        <h1 className="t-display text-ink">Organizers</h1>
-        <p className="t-meta mt-1 text-ink-muted">
-          {loadError ? "Associations, cafés and clubs in Maastricht" : `${organizers.length} associations, cafés and clubs in Maastricht`}
-        </p>
+    <TabScreen active="organizers">
+      <ScreenHeader title="Organizers" meta={`${organizers.length} associations, cafés and clubs in Maastricht`} />
 
-        {loadError ? (
-          <div className="mt-8 flex flex-col items-center gap-2 text-center">
-            <Icon name="warning" className="text-ink-muted" size={28} />
-            <p className="t-body max-w-[280px] text-ink-muted">Could not load organizers right now. Try again soon.</p>
-          </div>
-        ) : (
+      {!isOff("search") ? (
+        <div className="px-4 pb-3">
+          <Field kind="search" placeholder="Search associations, cafés, clubs" value={query} onChange={setQuery} />
+        </div>
+      ) : null}
+
+      <div className="flex items-center gap-2 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {TYPE_CHIPS.map((chip) => (
+          <Chip key={chip.id} label={chip.label} selected={typeFilter === chip.id} onClick={() => setTypeFilter(chip.id)} />
+        ))}
+        {!followOff ? (
           <>
-            <div className="mt-4">
-              <Field kind="search" placeholder="Search associations, cafés, clubs" value={query} onChange={setQuery} />
-            </div>
-
-            <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
-              {TYPE_CHIPS.map((chip) => (
-                <Chip key={chip.id} label={chip.label} selected={typeFilter === chip.id} onClick={() => setTypeFilter(chip.id)} />
-              ))}
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3">
-              {filtered.length === 0 ? (
-                <p className="t-body mt-4 text-center text-ink-muted">No organizers match your search.</p>
-              ) : (
-                filtered.map((organizer) => (
-                  <OrganizerCard
-                    key={organizer.slug}
-                    name={organizer.name}
-                    type={organizer.type}
-                    category={organizer.category}
-                    logo={organizer.logo}
-                    following={followed.has(organizer.slug)}
-                    onFollow={() => handleFollow(organizer.slug)}
-                    onClick={() => router.push(`/organizers/${organizer.slug}`)}
-                  />
-                ))
-              )}
-            </div>
+            <span className="mx-1 h-[22px] w-px flex-none bg-line" aria-hidden="true" />
+            <Chip label="Following" selected={followingOnly} onClick={toggleFollowingOnly} />
           </>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-3 px-4">
+        {filtered.length === 0 ? (
+          <p className="t-body px-2 py-8 text-center text-ink-muted">{emptyCopy}</p>
+        ) : (
+          filtered.map((organizer) => (
+            <OrganizerCard
+              key={organizer.slug}
+              name={organizer.name}
+              type={organizer.type}
+              category={organizer.category}
+              logo={organizer.logo}
+              following={followed.has(organizer.slug)}
+              onFollow={onFollowFor(organizer.slug)}
+              onClick={() => router.push(`/organizers/${organizer.slug}`)}
+            />
+          ))
         )}
       </div>
-      <TabBar active="organizers" onChange={handleTabChange} />
-    </>
+
+      {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}
+    </TabScreen>
   );
 }

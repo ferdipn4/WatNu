@@ -1,19 +1,16 @@
 // app/organizers/page.tsx — "/organizers" directory (design/screens.md "2 · Organizers").
-// Wired to the real /api/organizers route: the data is simple enough that
-// fixtures aren't needed here, per the task brief.
-import { fetchOrganizers } from "@/app/_lib/api-client";
-import { toDirectoryOrganizer } from "./_lib/adapt";
+// Same read model as Home / My WatNu / Event detail: the real /api/organizers first,
+// lib/fixtures.ts when the API isn't configured or has nothing yet.
+import { Suspense } from "react";
+import { getViewOrganizers } from "@/app/e/_lib/view-data";
 import { OrganizersScreen } from "./_components/OrganizersScreen";
 
 export default async function OrganizersPage() {
-  let organizers: ReturnType<typeof toDirectoryOrganizer>[] = [];
-  let loadError: string | undefined;
-
-  try {
-    organizers = (await fetchOrganizers()).map(toDirectoryOrganizer);
-  } catch (error) {
-    loadError = error instanceof Error ? error.message : "Could not load organizers.";
-  }
-
-  return <OrganizersScreen organizers={organizers} loadError={loadError} />;
+  const organizers = await getViewOrganizers();
+  return (
+    // The screen reads ?following=1 with useSearchParams, which needs a Suspense boundary.
+    <Suspense fallback={null}>
+      <OrganizersScreen organizers={organizers} />
+    </Suspense>
+  );
 }

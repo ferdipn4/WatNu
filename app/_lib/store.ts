@@ -7,6 +7,12 @@
 
 const FOLLOWED_ORGANIZERS_KEY = "watnu:followed-organizers";
 const SAVED_EVENTS_KEY = "watnu:saved-events";
+/**
+ * The v1 "organizer token" from design/screens.md: the browser that published an organizer's
+ * events remembers that organizer's slug, and only that browser sees the organizer-only parts
+ * of the profile (the stats card). No accounts.
+ */
+const PUBLISHED_ORGANIZERS_KEY = "watnu:published-organizers";
 
 function readList(key: string): string[] {
   if (typeof window === "undefined") return [];
@@ -63,4 +69,15 @@ export function isEventSaved(id: string): boolean {
 
 export function toggleSavedEvent(id: string): boolean {
   return toggleInList(SAVED_EVENTS_KEY, id);
+}
+
+/** Records that this browser published as `slug` (called after a successful publish). */
+export function rememberPublishedOrganizer(slug: string): void {
+  const list = readList(PUBLISHED_ORGANIZERS_KEY);
+  if (!list.includes(slug)) writeList(PUBLISHED_ORGANIZERS_KEY, [...list, slug]);
+}
+
+/** Whether this browser holds the organizer token for `slug`. */
+export function hasPublishedAs(slug: string): boolean {
+  return readList(PUBLISHED_ORGANIZERS_KEY).includes(slug);
 }

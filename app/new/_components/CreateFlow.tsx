@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
+import { isLive } from "@/lib/features";
 import type { DraftEvent } from "@/lib/schemas";
+import { rememberPublishedOrganizer } from "@/app/_lib/store";
+import { useToast } from "@/app/_lib/use-toast";
 import { getJson, postJson } from "../_lib/api";
 import { toDateInputValue, toTimeInputValue } from "../_lib/datetime";
 import { blankForm, draftToForm, formToCheckPayload, formToCreatePayload, isRequiredFilled, isValidOptionalUrl } from "../_lib/form";
@@ -19,8 +22,12 @@ type Step = 1 | 2 | 3 | 4;
 type IngestPayload = { text?: string; imageBase64?: string; mediaType?: string };
 type ApiOrganizer = { slug: string; name: string };
 
+/** POST /api/events/check is only worth calling when at least one of the three checks is shown. */
+const ANY_CHECK_LIVE = isLive("conflictCheck") || isLive("duplicateCheck") || isLive("suggestions");
+
 export function CreateFlow() {
   const router = useRouter();
+  const { toast, showSoon } = useToast();
   const [step, setStep] = useState<Step>(1);
 
   const [posterImage, setPosterImage] = useState<string | null>(null);
@@ -41,7 +48,6 @@ export function CreateFlow() {
 
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
-  const [publishedToast, setPublishedToast] = useState(false);
 
   const missingFields = new Set(draft?.missing_fields ?? []);
 
@@ -166,7 +172,7 @@ export function CreateFlow() {
       checkRequested.current = false;
       return;
     }
-    if (checkRequested.current) return;
+    if (checkRequested.current || !ANY_CHECK_LIVE) return;
     checkRequested.current = true;
     void runCheck();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,12 +194,12 @@ export function CreateFlow() {
     setPublishing(true);
     setPublishError(null);
     try {
-      const result = await postJson<{ event: { id: string } }>(
-        "/api/events",
-        formToCreatePayload(form, draft?.organizer_slug ?? null, posterImage),
-      );
-      setPublishedToast(true);
-      setTimeout(() => router.push(`/e/${result.event.id}?published=1`), 1400);
+      const organizerSlug = draft?.organizer_slug ?? null;
+      const result = await postJson<{ event: { id: string } }>("/api/events", formToCreatePayload(form, organizerSlug, posterImage));
+      // v1 organizer token: this browser now counts as the organizer (design/screens.md §2).
+      if (organizerSlug) rememberPublishedOrganizer(organizerSlug);
+      // After publishing: Home, scrolled to the event, with the one maas toast (design/screens.md §3).
+      router.push(`/?published=${encodeURIComponent(result.event.id)}`);
     } catch (error) {
       setPublishError(error instanceof Error ? error.message : "Could not publish this event.");
       setPublishing(false);
@@ -210,6 +216,7 @@ export function CreateFlow() {
             onSubmitImage={startImageIngest}
             onSubmitText={startTextIngest}
             onCreateManually={createManually}
+            onSoon={showSoon}
             error={uploadError}
             startInPasteMode={startInPasteMode}
           />
@@ -276,9 +283,7 @@ export function CreateFlow() {
         </StepShell>
       ) : null}
 
-      {publishedToast ? (
-        <Toast tone="done">Published — it&apos;s live for everyone in Maastricht</Toast>
-      ) : null}
+      {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}
     </div>
   );
 }

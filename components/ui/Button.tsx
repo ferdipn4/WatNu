@@ -26,9 +26,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const SIZE_CLASSES: Record<"sm" | "md" | "lg", string> = {
-  sm: "h-9 px-3 text-[13px] leading-4",
-  md: "h-11 px-4 text-[15px] leading-5",
-  lg: "h-[52px] px-5 text-base leading-5",
+  sm: "h-9 text-[13px] leading-4",
+  md: "h-11 text-[15px] leading-5",
+  lg: "h-[52px] text-base leading-5",
+};
+
+/** Horizontal padding per size; ghost buttons use 8px and icon-only buttons none (bundle.css .wn-btn-*). */
+const PADDING_CLASSES: Record<"sm" | "md" | "lg", string> = {
+  sm: "px-3",
+  md: "px-4",
+  lg: "px-5",
 };
 
 const ICON_SIZE: Record<"sm" | "md" | "lg", number> = { sm: 16, md: 20, lg: 20 };
@@ -48,9 +55,9 @@ const VARIANT_CLASSES: Record<"primary" | "secondary" | "outline" | "ghost" | "s
 };
 
 const ICON_ONLY_WIDTH: Record<"sm" | "md" | "lg", string> = {
-  sm: "w-9 px-0",
-  md: "w-11 px-0",
-  lg: "w-[52px] px-0",
+  sm: "w-9",
+  md: "w-11",
+  lg: "w-[52px]",
 };
 
 export function Button({
@@ -77,15 +84,16 @@ export function Button({
   const classes = cx(
     "inline-flex items-center justify-center gap-2 border font-semibold whitespace-nowrap no-underline transition-[background-color,transform] duration-150 ease-out active:scale-[.98] focus-visible:outline-none focus-visible:shadow-ring disabled:pointer-events-none disabled:opacity-[.45]",
     round ? "rounded-full" : RADIUS_CLASSES[size],
-    isGhost ? "h-auto px-2 py-0" : SIZE_CLASSES[size],
+    SIZE_CLASSES[size],
+    iconOnly ? cx("px-0", ICON_ONLY_WIDTH[size]) : isGhost ? "px-2" : PADDING_CLASSES[size],
     onImage ? "border-transparent bg-surface-raised text-ink shadow-float" : VARIANT_CLASSES[effectiveVariant],
     full && "w-full",
-    iconOnly && ICON_ONLY_WIDTH[size],
     soon && "cursor-pointer",
     className,
   );
 
-  const soonTag = soon ? (
+  // Icon-only buttons have no room for the tag; the dashed outline alone marks them.
+  const soonTag = soon && !iconOnly ? (
     <span className="ml-0.5 inline-flex h-[18px] flex-none items-center rounded-lg border border-dashed border-ink-muted px-1.5 text-[11px] font-semibold leading-4 text-ink-muted">
       Soon
     </span>

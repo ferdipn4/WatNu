@@ -1,23 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { EventCard, type Category } from "@/components/ui/EventCard";
+import { resolveEventImage } from "@/components/ui/EventPoster";
 import { Icon } from "@/components/ui/Icon";
-import { TabBar, type TabBarProps } from "@/components/ui/TabBar";
+import { Toast } from "@/components/ui/Toast";
+import { isOff, isSoon } from "@/lib/features";
 import { EVENT_CATEGORIES } from "@/lib/types";
 import { getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
-import { resolveEventImage } from "@/components/ui/EventPoster";
+import { PUBLISHED_TOAST, useToast } from "@/app/_lib/use-toast";
+import { DayHeader } from "./DayHeader";
+import { ScreenHeader } from "./ScreenHeader";
+import { TabScreen } from "./TabScreen";
 
 export interface HomeEvent {
   id: string;
   title: string;
-  /** yyyy-mm-dd */
+  /** yyyy-mm-dd, Europe/Amsterdam */
   date: string;
-  /** "HH:mm" */
+  /** "HH:mm", Europe/Amsterdam */
   time: string;
   endTime?: string;
   location: string;
@@ -30,113 +34,142 @@ export interface HomeEvent {
 }
 
 type QuickFilter = "today" | "weekend" | "free";
-type ViewMode = "list" | "calendar";
 
 const AMSTERDAM_TZ = "Europe/Amsterdam";
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/* Every date below is a yyyy-mm-dd key in Europe/Amsterdam; the Date objects are UTC-noon anchors used only for arithmetic. */
 
 function todayKey(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: AMSTERDAM_TZ }).format(new Date());
 }
 
-/** Monday of the week containing this yyyy-mm-dd key, as a UTC-noon-anchored Date (dodges DST edges). */
-function mondayOf(dateKey: string): Date {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  const anchor = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-  const daysFromMonday = (anchor.getUTCDay() + 6) % 7;
-  anchor.setUTCDate(anchor.getUTCDate() - daysFromMonday);
-  return anchor;
+function keyToDate(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12));
 }
 
-function addDays(date: Date, days: number): Date {
-  const next = new Date(date.getTime());
-  next.setUTCDate(next.getUTCDate() + days);
-  return next;
-}
-
-function toKey(date: Date): string {
+function dateToKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function shortWeekday(date: Date): string {
-  return new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" }).format(date);
+function addDays(key: string, days: number): string {
+  const date = keyToDate(key);
+  date.setUTCDate(date.getUTCDate() + days);
+  return dateToKey(date);
 }
 
-function shortMonth(date: Date): string {
-  return new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(date);
+function mondayOf(key: string): string {
+  const date = keyToDate(key);
+  return addDays(key, -((date.getUTCDay() + 6) % 7));
 }
 
-function formatWeekRange(monday: Date, sunday: Date): string {
-  return `${shortWeekday(monday)} ${monday.getUTCDate()} – ${shortWeekday(sunday)} ${sunday.getUTCDate()} ${shortMonth(sunday)}`;
+function weeksBetween(fromMondayKey: string, toMondayKey: string): number {
+  return Math.round((keyToDate(toMondayKey).getTime() - keyToDate(fromMondayKey).getTime()) / (7 * 86_400_000));
 }
 
-function formatDayMeta(dateKey: string): string {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d, 12));
-  return `${shortWeekday(date)} ${date.getUTCDate()} ${shortMonth(date)}`;
+/** "Mon 21 Sep" — the app's date format (design/README.md → Voice and content). */
+function shortDate(key: string): string {
+  const date = keyToDate(key);
+  return `${WEEKDAY_SHORT[date.getUTCDay()]} ${date.getUTCDate()} ${MONTH_SHORT[date.getUTCMonth()]}`;
 }
 
-function dayHeading(dateKey: string, todayK: string, tomorrowK: string): string {
-  if (dateKey === todayK) return "Today";
-  if (dateKey === tomorrowK) return "Tomorrow";
-  const [y, m, d] = dateKey.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d, 12));
-  return new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "UTC" }).format(date);
+/** "25 Sep" — beside a day header that already names the weekday. */
+function dayOnly(key: string): string {
+  const date = keyToDate(key);
+  return `${date.getUTCDate()} ${MONTH_SHORT[date.getUTCMonth()]}`;
 }
 
-function isFree(event: HomeEvent): boolean {
-  return !event.price;
+/** "Mon 21 – Sun 27 Sep", or "Mon 28 Sep – Sun 4 Oct" across a month boundary. */
+function weekRange(mondayKey: string, sundayKey: string): string {
+  const monday = keyToDate(mondayKey);
+  const sunday = keyToDate(sundayKey);
+  const start = `${WEEKDAY_SHORT[monday.getUTCDay()]} ${monday.getUTCDate()}`;
+  const startMonth = monday.getUTCMonth() === sunday.getUTCMonth() ? "" : ` ${MONTH_SHORT[monday.getUTCMonth()]}`;
+  return `${start}${startMonth} – ${shortDate(sundayKey)}`;
 }
 
-function eventCountLabel(count: number): string {
+function dayHeader(key: string, today: string, tomorrow: string): { name: string; date: string } {
+  if (key === today) return { name: "Today", date: shortDate(key) };
+  if (key === tomorrow) return { name: "Tomorrow", date: shortDate(key) };
+  return { name: WEEKDAY_LONG[keyToDate(key).getUTCDay()], date: dayOnly(key) };
+}
+
+function eventCount(count: number): string {
   return count === 1 ? "1 event" : `${count} events`;
+}
+
+function weekTitle(offset: number): string {
+  if (offset <= 0) return "This week";
+  if (offset === 1) return "Next week";
+  return `In ${offset} weeks`;
 }
 
 export function HomeScreen({ events }: { events: HomeEvent[] }) {
   const router = useRouter();
+  const { toast, show, showSoon } = useToast();
 
   const [quick, setQuick] = useState<Set<QuickFilter>>(() => new Set());
   const [categories, setCategories] = useState<Set<Category>>(() => new Set());
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
-
-  useEffect(() => {
-    // One-time hydration of client-only localStorage state after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSavedIds(new Set(getSavedEventIds()));
-  }, []);
+  const [publishedId, setPublishedId] = useState<string | null>(null);
 
   const todayK = todayKey();
-  const tomorrowKey = toKey(addDays(new Date(`${todayK}T12:00:00Z`), 1));
+  const tomorrowK = addDays(todayK, 1);
+  const thisMonday = mondayOf(todayK);
 
-  const weekMonday = addDays(mondayOf(todayK), weekOffset * 7);
-  const weekSunday = addDays(weekMonday, 6);
-  const weekMondayKey = toKey(weekMonday);
-  const weekSundayKey = toKey(weekSunday);
-  const weekendKeys = new Set([toKey(addDays(weekMonday, 4)), toKey(addDays(weekMonday, 5)), toKey(addDays(weekMonday, 6))]);
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
+    setSavedIds(new Set(getSavedEventIds()));
 
-  // These lists never exceed a few dozen fixture events, so plain recomputation
-  // on every render is cheap — no need for manual useMemo bookkeeping here.
-  const eventsInWeek = events.filter((e) => e.date >= weekMondayKey && e.date <= weekSundayKey);
+    // The create flow lands here after publishing with ?published=<id>: the one done toast, the
+    // event's week, and the list scrolled to its card (design/screens.md §3).
+    const id = new URLSearchParams(window.location.search).get("published");
+    if (id) {
+      const published = events.find((event) => event.id === id);
+      if (published) setWeekOffset(weeksBetween(mondayOf(todayKey()), mondayOf(published.date)));
+      setQuick(new Set());
+      setCategories(new Set());
+      setPublishedId(id);
+      show(PUBLISHED_TOAST, "done");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [events, show]);
 
+  useEffect(() => {
+    if (!publishedId) return;
+    document.getElementById(`event-${publishedId}`)?.scrollIntoView({ block: "center" });
+  }, [publishedId, weekOffset]);
+
+  const weekMondayKey = addDays(thisMonday, weekOffset * 7);
+  const weekSundayKey = addDays(weekMondayKey, 6);
+  const weekendKeys = new Set([4, 5, 6].map((offset) => addDays(weekMondayKey, offset)));
+
+  const eventsInWeek = events.filter((event) => event.date >= weekMondayKey && event.date <= weekSundayKey);
+
+  // Quick filters narrow the days shown; categories are OR-ed (design/screens.md §1).
   const filtered = eventsInWeek
-    .filter((e) => {
-      if (categories.size > 0 && !categories.has(e.category)) return false;
-      if (quick.has("free") && !isFree(e)) return false;
-      if (quick.has("today") && e.date !== todayK) return false;
-      if (quick.has("weekend") && !weekendKeys.has(e.date)) return false;
-      if (viewMode === "calendar" && selectedDate && e.date !== selectedDate) return false;
+    .filter((event) => {
+      if (categories.size > 0 && !categories.has(event.category)) return false;
+      if (quick.has("free") && event.price > 0) return false;
+      if (quick.has("today") && event.date !== todayK) return false;
+      if (quick.has("weekend") && !weekendKeys.has(event.date)) return false;
       return true;
     })
     .sort((a, b) => (a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)));
 
   const groups: { date: string; events: HomeEvent[] }[] = [];
   for (const event of filtered) {
-    const lastGroup = groups[groups.length - 1];
-    if (lastGroup?.date === event.date) lastGroup.events.push(event);
+    const last = groups[groups.length - 1];
+    if (last?.date === event.date) last.events.push(event);
     else groups.push({ date: event.date, events: [event] });
   }
+
+  const filtersActive = quick.size > 0 || categories.size > 0;
 
   function toggleQuick(filter: QuickFilter) {
     setQuick((prev) => {
@@ -159,7 +192,6 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
   function clearFilters() {
     setQuick(new Set());
     setCategories(new Set());
-    setSelectedDate(null);
   }
 
   function handleSave(id: string, saved: boolean) {
@@ -172,72 +204,60 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
     });
   }
 
-  function handleTabChange(tab: Parameters<NonNullable<TabBarProps["onChange"]>>[0]) {
-    const routes: Record<string, string> = { week: "/", organizers: "/organizers", create: "/new", mine: "/mine" };
-    router.push(routes[tab] ?? "/");
+  // features.save: local = the bookmark works, soon = it stays and shows the toast, off = no bookmark.
+  const saveOff = isOff("save");
+  const saveSoon = isSoon("save");
+  function onSaveFor(id: string) {
+    if (saveOff) return null;
+    if (saveSoon) return () => showSoon();
+    return (saved: boolean) => handleSave(id, saved);
   }
 
-  const isNextWeek = weekOffset > 0;
+  const empty = filtersActive
+    ? { heading: "Nothing on for these filters", body: "Try clearing them to see everything on this week.", action: "Clear filters", onAction: clearFilters }
+    : weekOffset > 0
+      ? { heading: "Nothing on next week yet", body: "Organizers add events all week — check back soon.", action: "Back to this week", onAction: () => setWeekOffset(0) }
+      : { heading: "Nothing on this week yet", body: "Organizers add events all week — check back soon.", action: "Next week", onAction: () => setWeekOffset(1) };
 
   return (
-    <>
-      <div className="flex h-dvh flex-col overflow-y-auto px-4 pt-8 pb-24">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="t-heading flex items-center gap-1.5 text-[18px] leading-none text-accent">
-            <Icon name="star" size={16} />
-            WatNu
+    <TabScreen active="week">
+      <ScreenHeader
+        title={weekTitle(weekOffset)}
+        meta={`${weekRange(weekMondayKey, weekSundayKey)} · ${eventCount(eventsInWeek.length)}`}
+        right={<Chip size="sm" icon="pin" label="Maastricht" />}
+      />
+
+      <div className="flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <Chip label="Today" selected={quick.has("today")} onClick={() => toggleQuick("today")} />
+        <Chip label="Weekend" selected={quick.has("weekend")} onClick={() => toggleQuick("weekend")} />
+        <Chip label="Free" selected={quick.has("free")} onClick={() => toggleQuick("free")} />
+        <span className="mx-1 h-[22px] w-px flex-none bg-line" aria-hidden="true" />
+        {EVENT_CATEGORIES.map((category) => (
+          <Chip key={category} label={category} selected={categories.has(category)} onClick={() => toggleCategory(category)} />
+        ))}
+      </div>
+
+      {groups.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
+          <span className="grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-soft text-accent">
+            <Icon name="calendar" size={32} />
           </span>
-          <Chip size="sm" icon="pin" label="Maastricht" />
+          <h2 className="t-heading text-ink">{empty.heading}</h2>
+          <p className="t-body text-ink-muted">{empty.body}</p>
+          <Button className="mt-2" onClick={empty.onAction}>
+            {empty.action}
+          </Button>
         </div>
-        <h1 className="t-display mt-1 text-ink">This week</h1>
-        <p className="t-meta mt-1 text-ink-muted">
-          {formatWeekRange(weekMonday, weekSunday)} · {eventCountLabel(eventsInWeek.length)}
-        </p>
-
-        <div className="mt-4 flex justify-end gap-2">
-          <Chip size="md" icon="text" label="List" selected={viewMode === "list"} onClick={() => setViewMode("list")} />
-          <Chip size="md" icon="calendar" label="Calendar" selected={viewMode === "calendar"} onClick={() => setViewMode("calendar")} />
-        </div>
-
-        <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">
-          <Chip label="Today" selected={quick.has("today")} onClick={() => toggleQuick("today")} />
-          <Chip label="Weekend" selected={quick.has("weekend")} onClick={() => toggleQuick("weekend")} />
-          <Chip label="Free" selected={quick.has("free")} onClick={() => toggleQuick("free")} />
-          <span className="mx-1 h-[34px] w-px flex-none self-center bg-line" aria-hidden="true" />
-          {EVENT_CATEGORIES.map((category) => (
-            <Chip key={category} label={category} selected={categories.has(category)} onClick={() => toggleCategory(category)} />
-          ))}
-        </div>
-
-        {viewMode === "calendar" ? (
-          <div className="mt-5">
-            <MonthCalendar events={events} todayKey={todayK} selectedDate={selectedDate} onSelect={setSelectedDate} />
-          </div>
-        ) : null}
-
-        <div className="mt-6 flex flex-col gap-6">
-          {groups.length === 0 ? (
-            <EmptyState
-              heading={isNextWeek ? "Nothing on for next week yet" : "Nothing on for these filters"}
-              body={
-                isNextWeek
-                  ? "Fixture data only covers this week for now."
-                  : "Try clearing them to see what's on this week."
-              }
-              actionLabel={isNextWeek ? "Back to this week" : "Clear filters"}
-              onAction={isNextWeek ? () => setWeekOffset(0) : clearFilters}
-            />
-          ) : (
-            groups.map((group) => (
-              <div key={group.date} className="flex flex-col gap-3">
-                <div className="flex items-baseline justify-between">
-                  <h2 className="t-heading text-ink">{dayHeading(group.date, todayK, tomorrowKey)}</h2>
-                  <span className="t-meta text-ink-muted">{formatDayMeta(group.date)}</span>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {group.events.map((event) => (
+      ) : (
+        groups.map((group) => {
+          const header = dayHeader(group.date, todayK, tomorrowK);
+          return (
+            <section key={group.date}>
+              <DayHeader name={header.name} date={header.date} />
+              <div className="flex flex-col gap-3 px-4">
+                {group.events.map((event) => (
+                  <div key={event.id} id={`event-${event.id}`}>
                     <EventCard
-                      key={event.id}
                       title={event.title}
                       time={event.time}
                       endTime={event.endTime}
@@ -248,134 +268,29 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
                       newcomers={event.newcomers}
                       image={resolveEventImage(event.image, event.category, event.title)}
                       saved={savedIds.has(event.id)}
-                      onSave={(saved) => handleSave(event.id, saved)}
+                      onSave={onSaveFor(event.id)}
                       onClick={() => router.push(`/e/${event.id}`)}
                     />
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            ))
-          )}
+            </section>
+          );
+        })
+      )}
 
-          {!isNextWeek ? (
-            <button type="button" onClick={() => setWeekOffset(1)} className="t-meta self-start text-maas underline-offset-2 hover:underline">
-              Next week
-            </button>
-          ) : null}
-        </div>
-      </div>
-      <TabBar active="week" onChange={handleTabChange} />
-    </>
-  );
-}
-
-function EmptyState({
-  heading,
-  body,
-  actionLabel,
-  onAction,
-}: {
-  heading: string;
-  body: string;
-  actionLabel: string;
-  onAction: () => void;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-3 py-8 text-center">
-      <div className="grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-soft text-accent">
-        <Icon name="bookmark" size={28} />
-      </div>
-      <h2 className="t-heading text-ink">{heading}</h2>
-      <p className="t-body max-w-[280px] text-ink-muted">{body}</p>
-      <Button onClick={onAction}>{actionLabel}</Button>
-    </div>
-  );
-}
-
-function daysInMonth(year: number, monthIndex0: number): number {
-  return new Date(Date.UTC(year, monthIndex0 + 1, 0)).getUTCDate();
-}
-
-function MonthCalendar({
-  events,
-  todayKey: todayK,
-  selectedDate,
-  onSelect,
-}: {
-  events: HomeEvent[];
-  todayKey: string;
-  selectedDate: string | null;
-  onSelect: (date: string | null) => void;
-}) {
-  const [year, month] = todayK.split("-").map(Number);
-  const monthIndex0 = month - 1;
-  const total = daysInMonth(year, monthIndex0);
-  const firstWeekday = (new Date(Date.UTC(year, monthIndex0, 1)).getUTCDay() + 6) % 7; // Mon=0..Sun=6
-
-  const countsByDate = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const event of events) {
-      map.set(event.date, (map.get(event.date) ?? 0) + 1);
-    }
-    return map;
-  }, [events]);
-
-  const monthLabel = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(
-    new Date(Date.UTC(year, monthIndex0, 1)),
-  );
-
-  const cells: Array<{ day: number; dateKey: string } | null> = [];
-  for (let i = 0; i < firstWeekday; i++) cells.push(null);
-  for (let day = 1; day <= total; day++) {
-    const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    cells.push({ day, dateKey });
-  }
-
-  return (
-    <Card tone="sunken" tight>
-      <div className="flex items-center justify-between px-1 pb-2">
-        <span className="t-meta text-ink-muted">{monthLabel}</span>
-        {selectedDate ? (
-          <button type="button" onClick={() => onSelect(null)} className="t-meta text-maas">
-            Clear day
+      <div className="flex items-center gap-4 px-4 pt-6">
+        {weekOffset > 0 ? (
+          <button type="button" onClick={() => setWeekOffset(0)} className="t-meta text-maas">
+            This week
           </button>
         ) : null}
+        <button type="button" onClick={() => setWeekOffset((offset) => offset + 1)} className="t-meta text-maas">
+          Next week
+        </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 px-1 pb-1">
-        {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((label) => (
-          <span key={label} className="t-caption text-center text-ink-muted">
-            {label}
-          </span>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-1 px-1">
-        {cells.map((cell, index) => {
-          if (!cell) return <span key={`blank-${index}`} />;
-          const isToday = cell.dateKey === todayK;
-          const isSelected = cell.dateKey === selectedDate;
-          const count = countsByDate.get(cell.dateKey) ?? 0;
-          return (
-            <button
-              key={cell.dateKey}
-              type="button"
-              onClick={() => onSelect(isSelected ? null : cell.dateKey)}
-              className={[
-                "flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg text-[13px] font-semibold",
-                isSelected ? "bg-accent text-on-accent" : isToday ? "text-accent" : "text-ink",
-              ].join(" ")}
-            >
-              <span>{cell.day}</span>
-              <span
-                className={[
-                  "h-1.5 w-1.5 rounded-full",
-                  count > 0 ? (isSelected ? "bg-on-accent" : "bg-accent") : "bg-transparent",
-                ].join(" ")}
-                aria-hidden="true"
-              />
-            </button>
-          );
-        })}
-      </div>
-    </Card>
+
+      {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}
+    </TabScreen>
   );
 }

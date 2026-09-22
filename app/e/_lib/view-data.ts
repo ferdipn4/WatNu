@@ -182,6 +182,14 @@ export async function getViewEvents(): Promise<ViewEvent[]> {
   }
 }
 
+/** One organizer's upcoming events in date order — the profile's "Upcoming" list. */
+export function upcomingEventsFor(events: ViewEvent[], organizerSlug: string): ViewEvent[] {
+  const now = Date.now();
+  return events
+    .filter((event) => event.organizerSlug === organizerSlug && new Date(event.start).getTime() >= now)
+    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+}
+
 export async function getViewEventById(id: string): Promise<ViewEvent | null> {
   const events = await getViewEvents();
   return events.find((e) => e.id === id) ?? null;

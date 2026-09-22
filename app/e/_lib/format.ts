@@ -74,14 +74,15 @@ export function dayHeaderLabel(d: Date, now: Date = new Date()): { name: string;
 }
 
 /**
- * The event detail clock fact: "Tonight, Mon 21 Sep · 20:00–23:00". "Tonight"
- * / "Tomorrow" replaces the weekday within 48 hours (design/screens.md §5).
+ * The event detail clock fact: "Tonight, Mon 21 Sep · 20:00–23:00". "Tonight" ("Today" before
+ * 17:00) / "Tomorrow" is prefixed within 48 hours (design/screens.md §5); further out the short
+ * date already names the weekday: "Thu 24 Sep · 19:00".
  */
 export function factClockText(start: Date, end: Date | null, now: Date = new Date()): string {
   const diff = diffCalendarDays(start, now);
-  const prefix = diff === 0 ? "Tonight" : diff === 1 ? "Tomorrow" : WEEKDAY_LONG[start.getDay()];
+  const prefix = diff === 0 ? (start.getHours() >= 17 ? "Tonight, " : "Today, ") : diff === 1 ? "Tomorrow, " : "";
   const timeRange = end ? `${formatTime(start)}–${formatTime(end)}` : formatTime(start);
-  return `${prefix}, ${formatShortDate(start)} · ${timeRange}`;
+  return `${prefix}${formatShortDate(start)} · ${timeRange}`;
 }
 
 /**

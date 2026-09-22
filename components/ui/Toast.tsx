@@ -14,13 +14,13 @@ export interface ToastProps {
   className?: string;
 }
 
-/** One line above the tab bar for 4 seconds; only one at a time. */
+/** One line above the tab bar for 4 seconds; only one at a time. Fixed to the viewport, inside the 430px app column (16px gutters). */
 export function Toast({ tone = "info", children, icon, action, onAction, className }: ToastProps) {
   return (
     <div
       role="status"
       className={cx(
-        "absolute inset-x-4 bottom-[104px] z-4 flex min-h-12 items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium leading-5 shadow-float",
+        "fixed bottom-[calc(104px+env(safe-area-inset-bottom))] left-1/2 z-4 flex min-h-12 w-[calc(100%-32px)] max-w-[398px] -translate-x-1/2 items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium leading-5 shadow-float",
         tone === "done" ? "bg-maas text-on-maas" : "bg-ink text-surface",
         className,
       )}

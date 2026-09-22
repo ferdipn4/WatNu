@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Icon, cx } from "@/components/ui/Icon";
+import { isLive } from "@/lib/features";
 import type { DraftEvent } from "@/lib/schemas";
 import { EVENT_CATEGORIES, type EventCategory } from "@/lib/types";
 import { isValidOptionalUrl } from "../_lib/form";
@@ -57,7 +58,8 @@ export function ReviewStep({
     else select.focus();
   }
 
-  const translated = isTranslatedLanguage(draft?.original_language);
+  // The "Translated from …" note shows only when the backend really translated (features.translation).
+  const translated = isLive("translation") && isTranslatedLanguage(draft?.original_language);
   const categoryMissing = missingFields.has("category");
   const timeMissing = missingFields.has("time");
   const startMissing = missingFields.has("start");

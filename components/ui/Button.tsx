@@ -1,6 +1,7 @@
 "use client";
 
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
+import { useT } from "@/app/_lib/i18n";
 import { Icon, cx, type IconName } from "./Icon";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -77,6 +78,7 @@ export function Button({
   type,
   ...rest
 }: ButtonProps) {
+  const t = useT();
   const effectiveVariant = soon ? "soon" : variant;
   const isGhost = effectiveVariant === "ghost";
   const iconEl = typeof icon === "string" ? <Icon name={icon as IconName} size={ICON_SIZE[size]} /> : icon;
@@ -95,7 +97,7 @@ export function Button({
   // Icon-only buttons have no room for the tag; the dashed outline alone marks them.
   const soonTag = soon && !iconOnly ? (
     <span className="ml-0.5 inline-flex h-[18px] flex-none items-center rounded-lg border border-dashed border-ink-muted px-1.5 text-[11px] font-semibold leading-4 text-ink-muted">
-      Soon
+      {t("common.soon")}
     </span>
   ) : null;
 

@@ -9,24 +9,20 @@ import { Toast } from "@/components/ui/Toast";
 import { isOff, isSoon } from "@/lib/features";
 import { ScreenHeader } from "@/app/_components/ScreenHeader";
 import { TabScreen } from "@/app/_components/TabScreen";
+import { useT } from "@/app/_lib/i18n";
 import { getFollowedOrganizers, toggleFollowOrganizer } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import type { ViewOrganizer } from "@/app/e/_lib/view-data";
 
 type TypeFilter = "all" | "association" | "cafe" | "club-venue";
 
-const TYPE_CHIPS: { id: TypeFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "association", label: "Associations" },
-  { id: "cafe", label: "Cafés" },
-  { id: "club-venue", label: "Clubs & venues" },
-];
+const TYPE_FILTERS: TypeFilter[] = ["all", "association", "cafe", "club-venue"];
 
 /** sessionStorage key: search and chip survive the trip to a profile and back (design/screens.md §2). */
 const UI_STATE_KEY = "watnu:organizers-ui";
 
 function isTypeFilter(value: unknown): value is TypeFilter {
-  return TYPE_CHIPS.some((chip) => chip.id === value);
+  return TYPE_FILTERS.includes(value as TypeFilter);
 }
 
 function matchesType(organizer: ViewOrganizer, filter: TypeFilter): boolean {
@@ -38,6 +34,7 @@ function matchesType(organizer: ViewOrganizer, filter: TypeFilter): boolean {
 export function OrganizersScreen({ organizers }: { organizers: ViewOrganizer[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
   // My WatNu's "Following N organizers" row opens the directory filtered to followed organizers.
   const followingOnly = searchParams.get("following") === "1";
   const { toast, showSoon } = useToast();
@@ -76,9 +73,15 @@ export function OrganizersScreen({ organizers }: { organizers: ViewOrganizer[] }
     return organizers
       .filter((organizer) => !followingOnly || followed.has(organizer.slug))
       .filter((organizer) => matchesType(organizer, typeFilter))
-      .filter((organizer) => !q || organizer.name.toLowerCase().includes(q) || organizer.category.toLowerCase().includes(q))
+      .filter(
+        (organizer) =>
+          !q ||
+          organizer.name.toLowerCase().includes(q) ||
+          organizer.category.toLowerCase().includes(q) ||
+          t.category(organizer.category).toLowerCase().includes(q),
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [organizers, followingOnly, followed, typeFilter, query]);
+  }, [organizers, followingOnly, followed, typeFilter, query, t]);
 
   function handleFollow(slug: string) {
     const isNowFollowing = toggleFollowOrganizer(slug);
@@ -99,30 +102,37 @@ export function OrganizersScreen({ organizers }: { organizers: ViewOrganizer[] }
   const followSoon = isSoon("follow");
   const onFollowFor = (slug: string) => (followOff ? null : followSoon ? () => showSoon() : () => handleFollow(slug));
 
+  const typeLabels: Record<TypeFilter, string> = {
+    all: t("organizers.all"),
+    association: t("organizers.associations"),
+    cafe: t("organizers.cafes"),
+    "club-venue": t("organizers.clubsVenues"),
+  };
+
   const emptyCopy = followingOnly
     ? followed.size === 0
-      ? "You don't follow anyone yet. Follow an organizer and their events show up on My WatNu."
-      : "None of the organizers you follow match this search."
-    : "No organizers match this search.";
+      ? t("organizers.empty.noFollows")
+      : t("organizers.empty.followsSearch")
+    : t("organizers.empty");
 
   return (
     <TabScreen active="organizers">
-      <ScreenHeader title="Organizers" meta={`${organizers.length} associations, cafés and clubs in Maastricht`} />
+      <ScreenHeader title={t("organizers.title")} meta={t("organizers.meta", { count: organizers.length })} />
 
       {!isOff("search") ? (
         <div className="px-4 pb-3">
-          <Field kind="search" placeholder="Search associations, cafés, clubs" value={query} onChange={setQuery} />
+          <Field kind="search" placeholder={t("organizers.search")} value={query} onChange={setQuery} />
         </div>
       ) : null}
 
       <div className="flex items-center gap-2 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {TYPE_CHIPS.map((chip) => (
-          <Chip key={chip.id} label={chip.label} selected={typeFilter === chip.id} onClick={() => setTypeFilter(chip.id)} />
+        {TYPE_FILTERS.map((filter) => (
+          <Chip key={filter} label={typeLabels[filter]} selected={typeFilter === filter} onClick={() => setTypeFilter(filter)} />
         ))}
         {!followOff ? (
           <>
             <span className="mx-1 h-[22px] w-px flex-none bg-line" aria-hidden="true" />
-            <Chip label="Following" selected={followingOnly} onClick={toggleFollowingOnly} />
+            <Chip label={t("common.following")} selected={followingOnly} onClick={toggleFollowingOnly} />
           </>
         ) : null}
       </div>

@@ -1,20 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useT } from "./i18n";
 
 export type ToastState = { tone: "info" | "done"; text: string };
 
-/** What a `soon` control says when tapped (design/README.md → Feature states). */
-export const SOON_TOAST = "Not in this version yet — coming soon";
-/** The one `done` toast after publishing (design/README.md → States and feedback). */
-export const PUBLISHED_TOAST = "Published — it's live for everyone in Maastricht";
-/** The `done` toast after an organizer saved their profile. */
-export const PROFILE_UPDATED_TOAST = "Profile updated";
-
 const TOAST_MS = 4000;
 
-/** One toast at a time, 4 seconds, then gone; render `toast` with `<Toast>` (design/components/Toast/README.md). */
+/**
+ * One toast at a time, 4 seconds, then gone; render `toast` with `<Toast>`
+ * (design/components/Toast/README.md). `showSoon` says what a `soon` control says when tapped
+ * (design/README.md → Feature states).
+ */
 export function useToast() {
+  const t = useT();
   const [toast, setToast] = useState<ToastState | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -24,7 +23,7 @@ export function useToast() {
     timer.current = setTimeout(() => setToast(null), TOAST_MS);
   }, []);
 
-  const showSoon = useCallback(() => show(SOON_TOAST, "info"), [show]);
+  const showSoon = useCallback(() => show(t("toast.soon"), "info"), [show, t]);
 
   useEffect(
     () => () => {

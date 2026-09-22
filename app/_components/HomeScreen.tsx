@@ -10,8 +10,9 @@ import { Icon } from "@/components/ui/Icon";
 import { Toast } from "@/components/ui/Toast";
 import { isOff, isSoon } from "@/lib/features";
 import { EVENT_CATEGORIES } from "@/lib/types";
+import { dateNames, dayOnlyFromParts, shortDateFromParts, useT, type Locale } from "@/app/_lib/i18n";
 import { getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
-import { PUBLISHED_TOAST, useToast } from "@/app/_lib/use-toast";
+import { useToast } from "@/app/_lib/use-toast";
 import { DayHeader } from "./DayHeader";
 import { ScreenHeader } from "./ScreenHeader";
 import { TabScreen } from "./TabScreen";
@@ -36,9 +37,6 @@ export interface HomeEvent {
 type QuickFilter = "today" | "weekend" | "free";
 
 const AMSTERDAM_TZ = "Europe/Amsterdam";
-const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /* Every date below is a yyyy-mm-dd key in Europe/Amsterdam; the Date objects are UTC-noon anchors used only for arithmetic. */
 
@@ -71,44 +69,38 @@ function weeksBetween(fromMondayKey: string, toMondayKey: string): number {
 }
 
 /** "Mon 21 Sep" — the app's date format (design/README.md → Voice and content). */
-function shortDate(key: string): string {
+function shortDate(key: string, locale: Locale): string {
   const date = keyToDate(key);
-  return `${WEEKDAY_SHORT[date.getUTCDay()]} ${date.getUTCDate()} ${MONTH_SHORT[date.getUTCMonth()]}`;
+  return shortDateFromParts(locale, date.getUTCDay(), date.getUTCDate(), date.getUTCMonth());
 }
 
 /** "25 Sep" — beside a day header that already names the weekday. */
-function dayOnly(key: string): string {
+function dayOnly(key: string, locale: Locale): string {
   const date = keyToDate(key);
-  return `${date.getUTCDate()} ${MONTH_SHORT[date.getUTCMonth()]}`;
+  return dayOnlyFromParts(locale, date.getUTCDate(), date.getUTCMonth());
 }
 
 /** "Mon 21 – Sun 27 Sep", or "Mon 28 Sep – Sun 4 Oct" across a month boundary. */
-function weekRange(mondayKey: string, sundayKey: string): string {
+function weekRange(mondayKey: string, sundayKey: string, locale: Locale): string {
+  const names = dateNames(locale);
   const monday = keyToDate(mondayKey);
   const sunday = keyToDate(sundayKey);
-  const start = `${WEEKDAY_SHORT[monday.getUTCDay()]} ${monday.getUTCDate()}`;
-  const startMonth = monday.getUTCMonth() === sunday.getUTCMonth() ? "" : ` ${MONTH_SHORT[monday.getUTCMonth()]}`;
-  return `${start}${startMonth} – ${shortDate(sundayKey)}`;
+  const start = `${names.weekdayShort[monday.getUTCDay()]} ${monday.getUTCDate()}`;
+  const startMonth = monday.getUTCMonth() === sunday.getUTCMonth() ? "" : ` ${names.monthShort[monday.getUTCMonth()]}`;
+  return `${start}${startMonth} – ${shortDate(sundayKey, locale)}`;
 }
 
-function dayHeader(key: string, today: string, tomorrow: string): { name: string; date: string } {
-  if (key === today) return { name: "Today", date: shortDate(key) };
-  if (key === tomorrow) return { name: "Tomorrow", date: shortDate(key) };
-  return { name: WEEKDAY_LONG[keyToDate(key).getUTCDay()], date: dayOnly(key) };
-}
-
-function eventCount(count: number): string {
-  return count === 1 ? "1 event" : `${count} events`;
-}
-
-function weekTitle(offset: number): string {
-  if (offset <= 0) return "This week";
-  if (offset === 1) return "Next week";
-  return `In ${offset} weeks`;
+function dayHeader(key: string, today: string, tomorrow: string, locale: Locale): { name: string; date: string } {
+  const names = dateNames(locale);
+  if (key === today) return { name: names.today, date: shortDate(key, locale) };
+  if (key === tomorrow) return { name: names.tomorrow, date: shortDate(key, locale) };
+  return { name: names.weekdayLong[keyToDate(key).getUTCDay()], date: dayOnly(key, locale) };
 }
 
 export function HomeScreen({ events }: { events: HomeEvent[] }) {
   const router = useRouter();
+  const t = useT();
+  const locale = t.locale;
   const { toast, show, showSoon } = useToast();
 
   const [quick, setQuick] = useState<Set<QuickFilter>>(() => new Set());
@@ -134,11 +126,11 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
       setQuick(new Set());
       setCategories(new Set());
       setPublishedId(id);
-      show(PUBLISHED_TOAST, "done");
+      show(t("toast.published"), "done");
       window.history.replaceState(null, "", window.location.pathname);
     }
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [events, show]);
+  }, [events, show, t]);
 
   useEffect(() => {
     if (!publishedId) return;
@@ -213,27 +205,29 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
     return (saved: boolean) => handleSave(id, saved);
   }
 
+  const weekTitle = weekOffset <= 0 ? t("home.thisWeek") : weekOffset === 1 ? t("home.nextWeek") : t("home.inWeeks", { count: weekOffset });
+
   const empty = filtersActive
-    ? { heading: "Nothing on for these filters", body: "Try clearing them to see everything on this week.", action: "Clear filters", onAction: clearFilters }
+    ? { heading: t("home.empty.filters.title"), body: t("home.empty.filters.body"), action: t("home.empty.filters.action"), onAction: clearFilters }
     : weekOffset > 0
-      ? { heading: "Nothing on next week yet", body: "Organizers add events all week — check back soon.", action: "Back to this week", onAction: () => setWeekOffset(0) }
-      : { heading: "Nothing on this week yet", body: "Organizers add events all week — check back soon.", action: "Next week", onAction: () => setWeekOffset(1) };
+      ? { heading: t("home.empty.next.title"), body: t("home.empty.body"), action: t("home.empty.next.action"), onAction: () => setWeekOffset(0) }
+      : { heading: t("home.empty.this.title"), body: t("home.empty.body"), action: t("home.empty.this.action"), onAction: () => setWeekOffset(1) };
 
   return (
     <TabScreen active="week">
       <ScreenHeader
-        title={weekTitle(weekOffset)}
-        meta={`${weekRange(weekMondayKey, weekSundayKey)} · ${eventCount(eventsInWeek.length)}`}
-        right={<Chip size="sm" icon="pin" label="Maastricht" />}
+        title={weekTitle}
+        meta={`${weekRange(weekMondayKey, weekSundayKey, locale)} · ${t.n("events", eventsInWeek.length)}`}
+        right={<Chip size="sm" icon="pin" label={t("common.maastricht")} />}
       />
 
       <div className="flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Chip label="Today" selected={quick.has("today")} onClick={() => toggleQuick("today")} />
-        <Chip label="Weekend" selected={quick.has("weekend")} onClick={() => toggleQuick("weekend")} />
-        <Chip label="Free" selected={quick.has("free")} onClick={() => toggleQuick("free")} />
+        <Chip label={dateNames(locale).today} selected={quick.has("today")} onClick={() => toggleQuick("today")} />
+        <Chip label={t("home.weekend")} selected={quick.has("weekend")} onClick={() => toggleQuick("weekend")} />
+        <Chip label={t("common.free")} selected={quick.has("free")} onClick={() => toggleQuick("free")} />
         <span className="mx-1 h-[22px] w-px flex-none bg-line" aria-hidden="true" />
         {EVENT_CATEGORIES.map((category) => (
-          <Chip key={category} label={category} selected={categories.has(category)} onClick={() => toggleCategory(category)} />
+          <Chip key={category} label={t.category(category)} selected={categories.has(category)} onClick={() => toggleCategory(category)} />
         ))}
       </div>
 
@@ -250,7 +244,7 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
         </div>
       ) : (
         groups.map((group) => {
-          const header = dayHeader(group.date, todayK, tomorrowK);
+          const header = dayHeader(group.date, todayK, tomorrowK, locale);
           return (
             <section key={group.date}>
               <DayHeader name={header.name} date={header.date} />
@@ -282,11 +276,11 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
       <div className="flex items-center gap-4 px-4 pt-6">
         {weekOffset > 0 ? (
           <button type="button" onClick={() => setWeekOffset(0)} className="t-meta text-maas">
-            This week
+            {t("home.thisWeek")}
           </button>
         ) : null}
         <button type="button" onClick={() => setWeekOffset((offset) => offset + 1)} className="t-meta text-maas">
-          Next week
+          {t("home.nextWeek")}
         </button>
       </div>
 

@@ -11,6 +11,7 @@ import { OrgLogo } from "@/components/ui/OrgLogo";
 import { Toast } from "@/components/ui/Toast";
 import { isOff, isSoon } from "@/lib/features";
 import { TopBar } from "@/app/_components/TopBar";
+import { useT } from "@/app/_lib/i18n";
 import { isEventSaved, toggleSavedEvent } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import { renderDemoPoster } from "../_lib/demo-posters";
@@ -18,13 +19,6 @@ import { factClockText } from "../_lib/format";
 import type { ViewEvent, ViewOrganizer } from "../_lib/view-data";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import { PromoSheet } from "./PromoSheet";
-
-const ORG_TYPE_LABEL: Record<ViewOrganizer["type"], string> = {
-  association: "Student association",
-  cafe: "Café",
-  club: "Club",
-  venue: "Venue",
-};
 
 /** "10% off with WatNu" → "10% off" — the short tag for the tags row; the promo card keeps the full label. */
 function promoTagLabel(label: string): string {
@@ -41,6 +35,7 @@ export function EventDetailScreen({
   qrDataUrl: string | null;
 }) {
   const router = useRouter();
+  const t = useT();
   const { toast, show, showSoon } = useToast();
   const [saved, setSaved] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -72,9 +67,9 @@ export function EventDetailScreen({
     }
     try {
       await navigator.clipboard.writeText(url);
-      show("Link copied");
+      show(t("common.linkCopied"));
     } catch {
-      show("Could not copy the link");
+      show(t("common.linkCopyFailed"));
     }
   }
 
@@ -107,9 +102,9 @@ export function EventDetailScreen({
   }
   const onImage = hero !== null;
 
-  const backButton = <Button iconOnly round onImage={onImage} variant="secondary" icon="arrow-left" aria-label="Back" onClick={goBack} />;
+  const backButton = <Button iconOnly round onImage={onImage} variant="secondary" icon="arrow-left" aria-label={t("common.back")} onClick={goBack} />;
   const shareButton = shareOff ? null : (
-    <Button iconOnly round onImage={onImage} variant="secondary" icon="share" aria-label="Share" soon={shareSoon} onSoon={showSoon} onClick={handleShare} />
+    <Button iconOnly round onImage={onImage} variant="secondary" icon="share" aria-label={t("common.share")} soon={shareSoon} onSoon={showSoon} onClick={handleShare} />
   );
   const saveIconButton = saveOff ? null : (
     <Button
@@ -118,7 +113,7 @@ export function EventDetailScreen({
       onImage={onImage}
       variant="secondary"
       icon={<Icon name="bookmark" filled={saved} className={saved ? "text-accent" : undefined} />}
-      aria-label={saved ? "Saved" : "Save"}
+      aria-label={saved ? t("common.saved") : t("common.save")}
       aria-pressed={saved}
       soon={saveSoon}
       onSoon={showSoon}
@@ -148,8 +143,8 @@ export function EventDetailScreen({
 
       <div className="flex flex-col gap-3.5 px-4 pt-4">
         <div className="flex flex-wrap gap-1">
-          <Chip size="sm" label={event.category} />
-          {event.newcomers ? <Chip size="sm" tone="maas" label="Newcomers welcome" /> : null}
+          <Chip size="sm" label={t.category(event.category)} />
+          {event.newcomers ? <Chip size="sm" tone="maas" label={t("common.newcomers")} /> : null}
           {promo ? (
             promoSoon ? (
               <Chip size="sm" tone="soon" label={promoTagLabel(promo.label)} />
@@ -164,7 +159,7 @@ export function EventDetailScreen({
         <div className="flex flex-col gap-2">
           <div className="flex items-start gap-3">
             <Icon name="clock" className="mt-0.5 flex-none text-ink-muted" />
-            <span className="t-body-strong text-ink">{factClockText(start, end)}</span>
+            <span className="t-body-strong text-ink">{factClockText(start, end, t.locale)}</span>
           </div>
           <a href={`https://www.google.com/maps/search/?api=1&query=${mapQuery}`} target="_blank" rel="noreferrer" className="flex items-start gap-3">
             <Icon name="pin" className="mt-0.5 flex-none text-ink-muted" />
@@ -178,14 +173,14 @@ export function EventDetailScreen({
           <div className="flex items-start gap-3">
             <Icon name="euro" className="mt-0.5 flex-none text-ink-muted" />
             <span className="flex flex-col">
-              <span className={cx("t-body-strong", free ? "text-maas" : "text-ink")}>{free ? "Free" : `€${event.price}`}</span>
-              <span className="t-meta text-ink-muted">{free ? "No ticket, just show up" : "Pay at the door"}</span>
+              <span className={cx("t-body-strong", free ? "text-maas" : "text-ink")}>{free ? t("common.free") : `€${event.price}`}</span>
+              <span className="t-meta text-ink-muted">{free ? t("event.free.note") : t("event.paid.note")}</span>
             </span>
           </div>
         </div>
 
         {event.description ? <p className="t-body text-ink">{event.description}</p> : null}
-        {event.sourceLanguage !== "en" && !isOff("translation") ? <p className="t-caption text-maas">Translated from Dutch</p> : null}
+        {event.sourceLanguage !== "en" && !isOff("translation") ? <p className="t-caption text-maas">{t("event.translated")}</p> : null}
 
         {event.organizerSlug ? (
           <Card tight onClick={() => router.push(`/organizers/${event.organizerSlug}`)} className="flex! items-center gap-3">
@@ -193,8 +188,8 @@ export function EventDetailScreen({
             <span className="min-w-0 flex-1">
               <span className="t-body-strong block truncate text-ink">{event.organizerName}</span>
               <span className="t-meta block truncate text-ink-muted">
-                {ORG_TYPE_LABEL[event.organizerType]}
-                {organizer ? ` · ${organizer.upcomingCount} upcoming` : null}
+                {t.orgType(event.organizerType)}
+                {organizer ? ` · ${t.n("event.upcoming", organizer.upcomingCount)}` : null}
               </span>
             </span>
             <Icon name="chevron-right" className="flex-none text-ink-muted" />
@@ -204,7 +199,7 @@ export function EventDetailScreen({
             <OrgLogo name={event.organizerName} type={event.organizerType} />
             <span className="min-w-0 flex-1">
               <span className="t-body-strong block truncate text-ink">{event.organizerName}</span>
-              <span className="t-meta block truncate text-ink-muted">{ORG_TYPE_LABEL[event.organizerType]}</span>
+              <span className="t-meta block truncate text-ink-muted">{t.orgType(event.organizerType)}</span>
             </span>
           </Card>
         )}
@@ -219,13 +214,13 @@ export function EventDetailScreen({
                 onSoon={showSoon}
                 onClick={handleSaveToggle}
               >
-                <span className={saved ? "text-accent" : undefined}>{saved ? "Saved" : "Save"}</span>
+                <span className={saved ? "text-accent" : undefined}>{saved ? t("common.saved") : t("common.save")}</span>
               </Button>
             ) : null}
             {!calendarOff ? (
               calendarSoon ? (
                 <Button variant="secondary" icon="calendar" soon onSoon={showSoon}>
-                  Add to calendar
+                  {t("event.addToCalendar")}
                 </Button>
               ) : (
                 <AddToCalendarButton event={event} />
@@ -248,9 +243,9 @@ export function EventDetailScreen({
             </span>
             <span className="min-w-0 flex-1">
               <span className={cx("t-body-strong block truncate", promoSoon ? "text-ink-muted" : "text-accent")}>{promo.label}</span>
-              <span className="t-meta block text-ink-muted">Show the QR code at the door</span>
+              <span className="t-meta block text-ink-muted">{t("event.promo.body")}</span>
             </span>
-            {promoSoon ? <Chip size="sm" tone="soon" label="Soon" /> : <Icon name="chevron-right" className="flex-none text-accent" />}
+            {promoSoon ? <Chip size="sm" tone="soon" label={t("common.soon")} /> : <Icon name="chevron-right" className="flex-none text-accent" />}
           </Card>
         ) : null}
       </div>

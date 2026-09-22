@@ -1,3 +1,6 @@
+"use client";
+
+import { useT } from "@/app/_lib/i18n";
 import type { Category } from "./EventCard";
 import { Card } from "./Card";
 import { OrgLogo, type OrganizerType } from "./OrgLogo";
@@ -20,15 +23,9 @@ export interface OrganizerCardProps {
   className?: string;
 }
 
-const TYPE_LABEL: Record<OrganizerType, string> = {
-  association: "Student association",
-  cafe: "Café",
-  club: "Club",
-  venue: "Venue",
-};
-
 /** A directory row: the logo tile, name, "type · category", and a small Follow button. */
 export function OrganizerCard({ name, type, category, initials, logo, following, onFollow, onClick, className }: OrganizerCardProps) {
+  const t = useT();
   const showChevron = onFollow === null;
   // When there's both a row-level onClick and a Follow button, the Follow
   // button must not end up nested inside another <button> (invalid HTML,
@@ -43,7 +40,7 @@ export function OrganizerCard({ name, type, category, initials, logo, following,
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="truncate text-[15px] font-semibold leading-5 text-ink">{name}</div>
         <div className="truncate text-[13px] font-medium leading-[18px] text-ink-muted">
-          {TYPE_LABEL[type]} · {category}
+          {t.orgType(type)} · {t.category(category)}
         </div>
       </div>
     </>
@@ -83,7 +80,7 @@ export function OrganizerCard({ name, type, category, initials, logo, following,
           }}
           className="flex-none"
         >
-          {following ? "Following" : "Follow"}
+          {following ? t("common.following") : t("common.follow")}
         </Button>
       )}
     </Card>

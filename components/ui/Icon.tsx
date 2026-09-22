@@ -30,6 +30,7 @@ import {
   Star,
   Loader,
   Pencil,
+  User,
   type LucideIcon,
 } from "lucide-react";
 
@@ -69,8 +70,9 @@ export type IconName =
   | "euro"
   | "star"
   | "spinner"
-  /** the one glyph beyond the handoff's 29: Edit profile on the organizer screens */
-  | "pencil";
+  /** two glyphs beyond the handoff's 29: Edit profile on the organizer screens, and the profile button on My WatNu */
+  | "pencil"
+  | "user";
 
 export interface IconProps {
   name: IconName;
@@ -114,6 +116,7 @@ const GLYPHS: Record<IconName, LucideIcon> = {
   star: Star,
   spinner: Loader,
   pencil: Pencil,
+  user: User,
 };
 
 /** Stroke icons on a 24px grid, 1.75px stroke, round caps. The bookmark and the star are the two glyphs that fill. */

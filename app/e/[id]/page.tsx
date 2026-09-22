@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { Button } from "@/components/ui/Button";
+import { getServerT } from "@/app/_lib/i18n/server";
 import { getViewEventById, getViewOrganizerBySlug } from "@/app/e/_lib/view-data";
 import { EventDetailScreen } from "../_components/EventDetailScreen";
 
@@ -16,12 +17,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const event = await getViewEventById(id);
 
   if (!event) {
+    const t = await getServerT();
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6 text-center">
-        <h1 className="t-heading text-ink">No event here</h1>
-        <p className="t-body text-ink-muted">This event may have ended or the link is out of date.</p>
+        <h1 className="t-heading text-ink">{t("event.notFound.title")}</h1>
+        <p className="t-body text-ink-muted">{t("event.notFound.body")}</p>
         <Button href="/" variant="secondary">
-          Back to This week
+          {t("event.notFound.action")}
         </Button>
       </div>
     );

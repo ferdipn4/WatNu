@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { isLive } from "@/lib/features";
 import type { DraftEvent } from "@/lib/schemas";
 import { getJson, postJson } from "@/app/_lib/http";
+import { useT } from "@/app/_lib/i18n";
 import { claimOrganizer } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import { toDateInputValue, toTimeInputValue } from "../_lib/datetime";
@@ -27,6 +28,7 @@ const ANY_CHECK_LIVE = isLive("conflictCheck") || isLive("duplicateCheck") || is
 
 export function CreateFlow() {
   const router = useRouter();
+  const t = useT();
   const { toast, showSoon } = useToast();
   const [step, setStep] = useState<Step>(1);
 
@@ -75,18 +77,18 @@ export function CreateFlow() {
       .then((body) => {
         if (cancelled) return;
         const [first] = body.events;
-        if (!first) throw new Error("No event could be found in that poster or text.");
+        if (!first) throw new Error(t("create.error.noEvent"));
         setDraft(first);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        setIngestError(error instanceof Error ? error.message : "Could not read that poster.");
+        setIngestError(error instanceof Error ? error.message : t("create.error.read"));
       });
 
     return () => {
       cancelled = true;
     };
-  }, [pendingIngest]);
+  }, [pendingIngest, t]);
 
   function goToUpload() {
     router.push("/");
@@ -160,7 +162,7 @@ export function CreateFlow() {
       const result = await postJson<CheckResponse>("/api/events/check", formToCheckPayload(form));
       setCheckResult(result);
     } catch (error) {
-      setCheckError(error instanceof Error ? error.message : "Could not check this event.");
+      setCheckError(error instanceof Error ? error.message : t("create.publish.checkError"));
     } finally {
       setChecking(false);
     }
@@ -201,7 +203,7 @@ export function CreateFlow() {
       // After publishing: Home, scrolled to the event, with the one maas toast (design/screens.md §3).
       router.push(`/?published=${encodeURIComponent(result.event.id)}`);
     } catch (error) {
-      setPublishError(error instanceof Error ? error.message : "Could not publish this event.");
+      setPublishError(error instanceof Error ? error.message : t("create.publish.error"));
       setPublishing(false);
     }
   }
@@ -211,7 +213,7 @@ export function CreateFlow() {
   return (
     <div className="relative flex min-h-dvh flex-col">
       {step === 1 ? (
-        <StepShell step={1} title="New event" close onBack={goToUpload}>
+        <StepShell step={1} title={t("create.newEvent")} close onBack={goToUpload}>
           <UploadStep
             onSubmitImage={startImageIngest}
             onSubmitText={startTextIngest}
@@ -224,7 +226,7 @@ export function CreateFlow() {
       ) : null}
 
       {step === 2 ? (
-        <StepShell step={2} title="New event" close onBack={goToUpload}>
+        <StepShell step={2} title={t("create.newEvent")} close onBack={goToUpload}>
           <ReadingStep
             posterImage={posterImage}
             draft={draft}
@@ -238,11 +240,11 @@ export function CreateFlow() {
       {step === 3 ? (
         <StepShell
           step={3}
-          title="Check the details"
+          title={t("create.checkDetails")}
           onBack={() => setStep(1)}
           footer={
             <Button size="lg" full disabled={!canContinueFromReview} onClick={goToChecks}>
-              Check &amp; continue
+              {t("create.review.continue")}
             </Button>
           }
         >
@@ -261,11 +263,11 @@ export function CreateFlow() {
       {step === 4 ? (
         <StepShell
           step={4}
-          title="Before you publish"
+          title={t("create.beforePublish")}
           onBack={backToReview}
           footer={
             <Button size="lg" full disabled={publishing} onClick={handlePublish}>
-              {publishing ? "Publishing…" : "Publish"}
+              {publishing ? t("create.publish.publishing") : t("create.publish.publish")}
             </Button>
           }
         >

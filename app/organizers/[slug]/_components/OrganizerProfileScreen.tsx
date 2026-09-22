@@ -13,6 +13,7 @@ import { Toast } from "@/components/ui/Toast";
 import { WarningPanel } from "@/components/ui/WarningPanel";
 import { isOff, isSoon } from "@/lib/features";
 import { TopBar } from "@/app/_components/TopBar";
+import { useT } from "@/app/_lib/i18n";
 import {
   claimOrganizer,
   getSavedEventIds,
@@ -21,20 +22,9 @@ import {
   toggleFollowOrganizer,
   toggleSavedEvent,
 } from "@/app/_lib/store";
-import { PROFILE_UPDATED_TOAST, useToast } from "@/app/_lib/use-toast";
+import { useToast } from "@/app/_lib/use-toast";
 import { formatTime } from "@/app/e/_lib/format";
 import type { ViewEvent, ViewOrganizer } from "@/app/e/_lib/view-data";
-
-const TYPE_LABEL: Record<ViewOrganizer["type"], string> = {
-  association: "Student association",
-  cafe: "Café",
-  club: "Club",
-  venue: "Venue",
-};
-
-function eventCount(count: number): string {
-  return count === 1 ? "1 event" : `${count} events`;
-}
 
 /**
  * The organizer profile: 52px top bar (back, share), header row, Follow, description, the
@@ -43,6 +33,7 @@ function eventCount(count: number): string {
  */
 export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewOrganizer | null; events: ViewEvent[] }) {
   const router = useRouter();
+  const t = useT();
   const { toast, show, showSoon } = useToast();
   const [following, setFollowing] = useState(false);
   const [isOrganizer, setIsOrganizer] = useState(false);
@@ -60,10 +51,10 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
 
     // Back from Edit profile with ?updated=1: the done toast, then a clean URL.
     if (new URLSearchParams(window.location.search).get("updated") === "1") {
-      show(PROFILE_UPDATED_TOAST, "done");
+      show(t("toast.profileUpdated"), "done");
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, [slug, show]);
+  }, [slug, show, t]);
 
   function goBack() {
     // Back returns to the directory with scroll and search intact (the directory keeps them in sessionStorage).
@@ -83,9 +74,9 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
     }
     try {
       await navigator.clipboard.writeText(url);
-      show("Link copied");
+      show(t("common.linkCopied"));
     } catch {
-      show("Could not copy the link");
+      show(t("common.linkCopyFailed"));
     }
   }
 
@@ -100,7 +91,7 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
   }
 
   const shareButton = isOff("share") ? undefined : (
-    <Button iconOnly round variant="secondary" icon="share" aria-label="Share" soon={isSoon("share")} onSoon={showSoon} onClick={handleShare} />
+    <Button iconOnly round variant="secondary" icon="share" aria-label={t("common.share")} soon={isSoon("share")} onSoon={showSoon} onClick={handleShare} />
   );
 
   if (!organizer) {
@@ -111,10 +102,10 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
           <span className="grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-soft text-accent">
             <Icon name="users" size={32} />
           </span>
-          <h1 className="t-heading text-ink">No organizer here</h1>
-          <p className="t-body text-ink-muted">This organizer may have left, or the link is out of date.</p>
+          <h1 className="t-heading text-ink">{t("org.notFound.title")}</h1>
+          <p className="t-body text-ink-muted">{t("org.notFound.body")}</p>
           <Button className="mt-2" variant="secondary" href="/organizers">
-            Back to Organizers
+            {t("org.notFound.action")}
           </Button>
         </div>
       </div>
@@ -144,7 +135,7 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
           <div className="min-w-0 flex-1">
             <h1 className="t-title text-ink">{organizer.name}</h1>
             <p className="t-meta mt-1 text-ink-muted">
-              {TYPE_LABEL[organizer.type]} · {organizer.category}
+              {t.orgType(organizer.type)} · {t.category(organizer.category)}
             </p>
             {instagramHandle ? (
               <a
@@ -162,7 +153,7 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
 
         {isOrganizer && !manageOff ? (
           <Button size="lg" full variant="secondary" icon="pencil" soon={manageSoon} onSoon={showSoon} onClick={() => router.push(editUrl)}>
-            Edit profile
+            {t("org.edit")}
           </Button>
         ) : !isOff("follow") ? (
           <Button
@@ -175,7 +166,7 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
             onSoon={showSoon}
             onClick={() => setFollowing(toggleFollowOrganizer(organizer.slug))}
           >
-            {following ? "Following" : "Follow"}
+            {following ? t("common.following") : t("common.follow")}
           </Button>
         ) : null}
 
@@ -183,18 +174,18 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
 
         {/* The stats card renders only for the organizer: the browser that holds the token (design/screens.md §2). */}
         {isOrganizer && isSoon("organizerStats") ? (
-          <WarningPanel tone="soon" title="Organizer stats arrive with the next version">
-            You will see how many people redeemed your code here.
+          <WarningPanel tone="soon" title={t("org.stats.title")}>
+            {t("org.stats.body")}
           </WarningPanel>
         ) : null}
 
         <div className="mt-1 flex items-center justify-between">
-          <h2 className="t-heading text-ink">Upcoming</h2>
-          <span className="t-meta text-ink-muted">{eventCount(events.length)}</span>
+          <h2 className="t-heading text-ink">{t("org.upcoming")}</h2>
+          <span className="t-meta text-ink-muted">{t.n("events", events.length)}</span>
         </div>
 
         {events.length === 0 ? (
-          <p className="t-body text-ink-muted">No upcoming events yet.</p>
+          <p className="t-body text-ink-muted">{t("org.noUpcoming")}</p>
         ) : (
           <div className="flex flex-col gap-3">
             {events.map((event) => {
@@ -225,10 +216,10 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
         {!isOrganizer && !manageOff ? (
           <Card tone="sunken" tight onClick={manageSoon ? showSoon : manageProfile} className="mt-2 flex! items-center gap-3">
             <span className="min-w-0 flex-1">
-              <span className="t-body-strong block text-ink">Do you run {organizer.name}?</span>
-              <span className="t-meta block text-ink-muted">Manage this profile. No account — this phone remembers it.</span>
+              <span className="t-body-strong block text-ink">{t("org.claim.title", { name: organizer.name })}</span>
+              <span className="t-meta block text-ink-muted">{t("org.claim.body")}</span>
             </span>
-            {manageSoon ? <Chip size="sm" tone="soon" label="Soon" /> : <Icon name="chevron-right" className="flex-none text-ink-muted" />}
+            {manageSoon ? <Chip size="sm" tone="soon" label={t("common.soon")} /> : <Icon name="chevron-right" className="flex-none text-ink-muted" />}
           </Card>
         ) : null}
       </div>

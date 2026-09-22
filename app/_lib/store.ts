@@ -13,6 +13,8 @@ const SAVED_EVENTS_KEY = "watnu:saved-events";
  * only that browser sees the organizer-only parts (the stats card, Edit profile). No accounts.
  */
 const CLAIMED_ORGANIZERS_KEY = "watnu:published-organizers";
+/** The student's display name on the profile page — a label for this phone, never sent anywhere. */
+const DISPLAY_NAME_KEY = "watnu:display-name";
 
 function readList(key: string): string[] {
   if (typeof window === "undefined") return [];
@@ -88,4 +90,35 @@ export function releaseOrganizer(slug: string): void {
 /** Whether this browser holds the organizer token for `slug`. */
 export function isOrganizerOf(slug: string): boolean {
   return readList(CLAIMED_ORGANIZERS_KEY).includes(slug);
+}
+
+/** Every organizer this browser manages, for the profile page. */
+export function getClaimedOrganizers(): string[] {
+  return readList(CLAIMED_ORGANIZERS_KEY);
+}
+
+export function getDisplayName(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return (localStorage.getItem(DISPLAY_NAME_KEY) ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
+export function setDisplayName(name: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const trimmed = name.trim();
+    if (trimmed) localStorage.setItem(DISPLAY_NAME_KEY, trimmed);
+    else localStorage.removeItem(DISPLAY_NAME_KEY);
+  } catch {
+    // Ignore write failures (e.g. Safari private mode, quota exceeded).
+  }
+}
+
+/** "Clear saved events and follows" on the profile page. The name, theme, language and organizer tokens stay. */
+export function clearSavedAndFollowed(): void {
+  writeList(SAVED_EVENTS_KEY, []);
+  writeList(FOLLOWED_ORGANIZERS_KEY, []);
 }

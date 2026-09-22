@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChangeEvent, InputHTMLAttributes, ReactNode } from "react";
+import { useT } from "@/app/_lib/i18n";
 import { Icon, cx } from "./Icon";
 
 export interface FieldProps {
@@ -51,7 +52,8 @@ export function Field({
   inputMode,
   className,
 }: FieldProps) {
-  const resolvedHint = hint ?? (missing ? "Not on the poster — please add it" : undefined);
+  const t = useT();
+  const resolvedHint = hint ?? (missing ? t("field.missing") : undefined);
   const hintEl = resolvedHint ? (
     <span className={cx("flex items-center gap-1 text-xs font-medium leading-4 text-ink-muted", missing && "text-warn")}>
       {missing ? <Icon name="warning" size={14} /> : null}

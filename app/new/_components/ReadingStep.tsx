@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
+import { isLive } from "@/lib/features";
 import type { DraftEvent } from "@/lib/schemas";
+import { useT, type Translate } from "@/app/_lib/i18n";
 import { formatShortDate, formatTime } from "../_lib/datetime";
 import { isTranslatedLanguage } from "../_lib/language";
 
@@ -12,17 +14,31 @@ const STAGE_DELAY_MS = 260;
 
 type Row = { key: string; label: string; value: string };
 
-function rowsFor(draft: DraftEvent): Row[] {
+function rowsFor(draft: DraftEvent, t: Translate): Row[] {
   const when = draft.start
-    ? `${formatShortDate(draft.start)} · ${draft.missing_fields.includes("time") ? "time not found" : formatTime(draft.start)}`
-    : "not found";
+    ? `${formatShortDate(draft.start, t.locale)} · ${draft.missing_fields.includes("time") ? t("create.reading.timeNotFound") : formatTime(draft.start)}`
+    : t("create.reading.notFound");
 
   return [
-    { key: "title", label: "Title", value: draft.title || "not found" },
-    { key: "when", label: "Date and time", value: when },
-    { key: "place", label: "Place", value: draft.location_name || "not found" },
-    { key: "price", label: "Price", value: draft.price_eur === 0 ? "Free" : `€${draft.price_eur}` },
+    { key: "title", label: t("create.reading.rowTitle"), value: draft.title || t("create.reading.notFound") },
+    { key: "when", label: t("create.reading.rowWhen"), value: when },
+    { key: "place", label: t("create.reading.rowPlace"), value: draft.location_name || t("create.reading.notFound") },
+    { key: "price", label: t("create.reading.rowPrice"), value: draft.price_eur === 0 ? t("common.free") : `€${draft.price_eur}` },
   ];
+}
+
+function PosterFrame({ src }: { src: string }) {
+  return (
+    <span className="relative inline-block w-[168px] overflow-hidden rounded-2xl shadow-float">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" className="block w-full" />
+      <span
+        className="absolute inset-x-0 h-[3px] bg-accent"
+        style={{ animation: "wn-scan-new 2.2s ease-in-out infinite alternate", boxShadow: "0 0 12px var(--accent)" }}
+      />
+      <style>{"@keyframes wn-scan-new { from { top: 8%; } to { top: 90%; } }"}</style>
+    </span>
+  );
 }
 
 /** Step 2 — the floating poster (image flows only) and the progressive check list. */
@@ -39,13 +55,14 @@ export function ReadingStep({
   onFinished: () => void;
   onPasteInstead: () => void;
 }) {
+  const t = useT();
   const [revealed, setRevealed] = useState(0);
 
   useEffect(() => {
     if (!draft) return;
-    const rows = rowsFor(draft);
-    const translating = isTranslatedLanguage(draft.original_language);
-    const totalStages = rows.length + (translating ? 1 : 0);
+    const rowCount = 4;
+    const translating = isLive("translation") && isTranslatedLanguage(draft.original_language);
+    const totalStages = rowCount + (translating ? 1 : 0);
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     for (let stage = 1; stage <= totalStages; stage += 1) {
@@ -63,92 +80,60 @@ export function ReadingStep({
     return (
       <div className="flex flex-col items-center gap-6 pt-6 text-center">
         <div>
-          <h2 className="t-heading text-ink">Reading your poster…</h2>
+          <h2 className="t-heading text-ink">{t("create.reading.title")}</h2>
         </div>
         <Card className="w-full text-left">
           <div className="flex items-center gap-3 rounded-xl border-[1.5px] border-warn-line bg-warn-soft px-3 py-2.5">
             <Icon name="warning" className="text-warn" />
-            <span className="t-body-strong text-warn">Couldn&apos;t read this image</span>
+            <span className="t-body-strong text-warn">{t("create.reading.failed")}</span>
           </div>
         </Card>
         <Button variant="secondary" full onClick={onPasteInstead}>
-          Paste text instead
+          {t("create.upload.paste")}
         </Button>
       </div>
     );
   }
 
-  const rows = draft ? rowsFor(draft) : [];
-  const translating = draft ? isTranslatedLanguage(draft.original_language) : false;
-
-  if (!draft) {
-    return (
-      <div className="flex flex-col items-center gap-6 pt-6 text-center">
-        {posterImage ? (
-          <span className="relative inline-block w-[168px] overflow-hidden rounded-2xl shadow-float">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={posterImage} alt="" className="block w-full" />
-            <span
-              className="absolute inset-x-0 h-[3px] bg-accent"
-              style={{ animation: "wn-scan-new 2.2s ease-in-out infinite alternate", boxShadow: "0 0 12px var(--accent)" }}
-            />
-            <style>{"@keyframes wn-scan-new { from { top: 8%; } to { top: 90%; } }"}</style>
-          </span>
-        ) : null}
-        <div>
-          <h2 className="t-heading text-ink">Reading your poster…</h2>
-          <p className="t-meta mt-1 text-ink-muted">Usually under 20 seconds</p>
-        </div>
-        <Card className="w-full text-left">
-          <div className="flex min-h-6 items-center gap-3">
-            <Icon name="spinner" className="flex-none animate-spin text-accent" />
-            <span className="t-body flex-1 text-ink">Reading…</span>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  const rows = draft ? rowsFor(draft, t) : [];
+  const translating = draft ? isLive("translation") && isTranslatedLanguage(draft.original_language) : false;
 
   return (
     <div className="flex flex-col items-center gap-6 pt-6 text-center">
-      {posterImage ? (
-        <span className="relative inline-block w-[168px] overflow-hidden rounded-2xl shadow-float">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={posterImage} alt="" className="block w-full" />
-          <span
-            className="absolute inset-x-0 h-[3px] bg-accent"
-            style={{ animation: "wn-scan-new 2.2s ease-in-out infinite alternate", boxShadow: "0 0 12px var(--accent)" }}
-          />
-          <style>{"@keyframes wn-scan-new { from { top: 8%; } to { top: 90%; } }"}</style>
-        </span>
-      ) : null}
+      {posterImage ? <PosterFrame src={posterImage} /> : null}
 
       <div>
-        <h2 className="t-heading text-ink">Reading your poster…</h2>
-        <p className="t-meta mt-1 text-ink-muted">Usually under 20 seconds</p>
+        <h2 className="t-heading text-ink">{t("create.reading.title")}</h2>
+        <p className="t-meta mt-1 text-ink-muted">{t("create.reading.meta")}</p>
       </div>
 
       <Card className="w-full text-left">
-        <div className="flex flex-col gap-2">
-          {rows.map((row, index) => {
-            const shown = revealed > index;
-            if (!shown) return null;
-            return (
-              <div key={row.key} className="flex min-h-6 items-center gap-3">
-                <Icon name="check" className="flex-none text-maas" />
-                <span className="t-body min-w-0 flex-1 truncate text-ink">
-                  {row.label} <b className="font-semibold text-ink">{row.value}</b>
-                </span>
+        {!draft ? (
+          <div className="flex min-h-6 items-center gap-3">
+            <Icon name="spinner" className="flex-none animate-spin text-accent" />
+            <span className="t-body flex-1 text-ink">{t("create.reading.reading")}</span>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {rows.map((row, index) => {
+              if (revealed <= index) return null;
+              return (
+                <div key={row.key} className="flex min-h-6 items-center gap-3">
+                  <Icon name="check" className="flex-none text-maas" />
+                  <span className="t-body min-w-0 flex-1 truncate text-ink">
+                    {row.label} <b className="font-semibold text-ink">{row.value}</b>
+                  </span>
+                </div>
+              );
+            })}
+            {translating && revealed >= rows.length ? (
+              <div className="flex min-h-6 items-center gap-3">
+                <Icon name="spinner" className="flex-none animate-spin text-accent" />
+                <span className="t-body flex-1 text-ink">{t("create.reading.translating", { language: t.language(draft.original_language) })}</span>
               </div>
-            );
-          })}
-          {translating && revealed >= rows.length ? (
-            <div className="flex min-h-6 items-center gap-3">
-              <Icon name="spinner" className="flex-none animate-spin text-accent" />
-              <span className="t-body flex-1 text-ink">Translating from {draft?.original_language}…</span>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
+        )}
       </Card>
     </div>
   );

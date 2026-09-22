@@ -13,11 +13,11 @@ import { isOff, isSoon } from "@/lib/features";
 import { DayHeader } from "@/app/_components/DayHeader";
 import { ScreenHeader } from "@/app/_components/ScreenHeader";
 import { TabScreen } from "@/app/_components/TabScreen";
-import { getFollowedOrganizers, getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
+import { useT } from "@/app/_lib/i18n";
+import { getDisplayName, getFollowedOrganizers, getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import { dayHeaderLabel, dayKey, formatTime } from "@/app/e/_lib/format";
 import type { ViewEvent, ViewOrganizer } from "@/app/e/_lib/view-data";
-import { ProfileCard } from "./ProfileCard";
 
 function startOfToday(): Date {
   const date = new Date();
@@ -27,14 +27,17 @@ function startOfToday(): Date {
 
 export function MineScreen({ events, organizers }: { events: ViewEvent[]; organizers: ViewOrganizer[] }) {
   const router = useRouter();
+  const t = useT();
   const { toast, showSoon } = useToast();
   const [followedSlugs, setFollowedSlugs] = useState<string[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [name, setName] = useState("");
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
     setFollowedSlugs(getFollowedOrganizers());
     setSavedIds(getSavedEventIds());
+    setName(getDisplayName());
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -78,9 +81,23 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
   const showFollowing = !isOff("follow") && followedOrganizers.length > 0;
   const extraFollowed = followedOrganizers.length - 3;
 
+  // The wordmark row's right slot opens the profile: your initials once you have a name, a person icon before.
+  const profileButton = name ? (
+    <button
+      type="button"
+      aria-label={t("mine.profileButton")}
+      onClick={() => router.push("/mine/profile")}
+      className="rounded-full focus-visible:shadow-ring focus-visible:outline-none"
+    >
+      <OrgLogo name={name} type="association" size="md" round />
+    </button>
+  ) : (
+    <Button iconOnly round variant="secondary" icon="user" aria-label={t("mine.profileButton")} onClick={() => router.push("/mine/profile")} />
+  );
+
   return (
     <TabScreen active="mine">
-      <ScreenHeader title="My WatNu" meta="Saved events and everything from organizers you follow. No account — it lives on this phone." />
+      <ScreenHeader title={t("mine.title")} meta={t("mine.meta")} right={profileButton} />
 
       {showFollowing ? (
         <div className="mt-1 px-4">
@@ -103,9 +120,7 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
                 </span>
               ) : null}
             </span>
-            <span className="t-body-strong flex-1 text-ink">
-              Following {followedOrganizers.length} organizer{followedOrganizers.length === 1 ? "" : "s"}
-            </span>
+            <span className="t-body-strong flex-1 text-ink">{t.n("mine.following", followedOrganizers.length)}</span>
             <Icon name="chevron-right" className="flex-none text-ink-muted" />
           </Card>
         </div>
@@ -116,18 +131,18 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
           <span className="grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-soft text-accent">
             <Icon name="bookmark" size={32} />
           </span>
-          <h2 className="t-heading text-ink">Nothing here yet</h2>
-          <p className="t-body text-ink-muted">Save an event with the bookmark, or follow an organizer, and it shows up here.</p>
+          <h2 className="t-heading text-ink">{t("mine.empty.title")}</h2>
+          <p className="t-body text-ink-muted">{t("mine.empty.body")}</p>
           <Button className="mt-2" href="/">
-            Browse this week
+            {t("mine.empty.browse")}
           </Button>
           <Button variant="ghost" href="/organizers">
-            Find organizers
+            {t("mine.empty.find")}
           </Button>
         </div>
       ) : (
         groups.map(({ date, events: dayEvents }) => {
-          const header = dayHeaderLabel(date);
+          const header = dayHeaderLabel(date, t.locale);
           return (
             <section key={dayKey(date)}>
               <DayHeader name={header.name} date={header.date} />
@@ -158,10 +173,6 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
           );
         })
       )}
-
-      <div className="px-4 pt-6">
-        <ProfileCard />
-      </div>
 
       {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}
     </TabScreen>

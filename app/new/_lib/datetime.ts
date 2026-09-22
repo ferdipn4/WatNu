@@ -1,4 +1,5 @@
 import { amsterdamParts } from "@/lib/datetime";
+import { shortDateFromParts, type Locale } from "@/app/_lib/i18n";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -24,16 +25,13 @@ export function combineDateTime(date: string, time: string): string {
   return parsed.toISOString();
 }
 
-/** "Thu 24 Sep" — the app's short date format, Europe/Amsterdam. */
-export function formatShortDate(iso: string): string {
+/** "Thu 24 Sep" — the app's short date format, Europe/Amsterdam, in the UI language. */
+export function formatShortDate(iso: string, locale: Locale): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Amsterdam",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(date);
+  const [year, month, day] = amsterdamParts(date).dateKey.split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return shortDateFromParts(locale, weekday, day, month - 1);
 }
 
 /** "19:30" — 24-hour time, Europe/Amsterdam. */
@@ -48,7 +46,7 @@ export function formatTime(iso: string): string {
   }).format(date);
 }
 
-/** The full weekday name ("Thursday"), Europe/Amsterdam — matches `lib/datetime`'s `Weekday`. */
+/** The full English weekday name ("Thursday"), Europe/Amsterdam — matches `lib/datetime`'s `Weekday` and the check API. Display it via `localizeEnglishWeekday`. */
 export function weekdayName(iso: string): string {
   return amsterdamParts(iso).weekday;
 }

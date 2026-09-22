@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/app/_lib/i18n";
 import { promoRedemptionStorageKey } from "@/lib/promos";
 import {
   readLocalStorageValue,
@@ -22,6 +23,7 @@ export function PromoRedeemed({
   organizerName: string;
   promoText: string;
 }) {
+  const t = useT();
   const incremented = useRef(false);
 
   useEffect(() => {
@@ -37,10 +39,10 @@ export function PromoRedeemed({
       <span className="grid h-16 w-16 place-items-center rounded-full bg-maas-soft text-maas">
         <Icon name="check" size={32} />
       </span>
-      <h1 className="t-title text-ink">Promo redeemed. Enjoy.</h1>
+      <h1 className="t-title text-ink">{t("promo.redeemed")}</h1>
       <p className="t-body-strong text-ink">{organizerName}</p>
       <p className="t-meta text-ink-muted">{promoText}</p>
-      <p className="t-caption text-ink-muted">Demo data — this counts towards this organizer&apos;s local redemption count only.</p>
+      <p className="t-caption text-ink-muted">{t("promo.demo")}</p>
     </div>
   );
 }

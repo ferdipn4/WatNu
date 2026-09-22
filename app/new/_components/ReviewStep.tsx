@@ -8,6 +8,7 @@ import { Icon, cx } from "@/components/ui/Icon";
 import { isLive } from "@/lib/features";
 import type { DraftEvent } from "@/lib/schemas";
 import { EVENT_CATEGORIES, type EventCategory } from "@/lib/types";
+import { useT } from "@/app/_lib/i18n";
 import { isValidOptionalUrl } from "../_lib/form";
 import { isTranslatedLanguage } from "../_lib/language";
 import { resizeImageFile } from "../_lib/resize-image";
@@ -30,6 +31,7 @@ export function ReviewStep({
   onChangeImage: (payload: ImagePayload) => void;
   highlightDate?: boolean;
 }) {
+  const t = useT();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const categoryRef = useRef<HTMLSelectElement>(null);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function ReviewStep({
       const resized = await resizeImageFile(file);
       onChangeImage(resized);
     } catch (caught) {
-      setImageError(caught instanceof Error ? caught.message : "Could not process that image.");
+      setImageError(caught instanceof Error ? caught.message : t("image.error"));
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -71,14 +73,14 @@ export function ReviewStep({
         <Card tone="maas" tight className="flex! flex-row items-center gap-3">
           <Icon name="translate" size={24} className="flex-none text-maas" />
           <div className="min-w-0 flex-1">
-            <div className="t-body-strong text-maas">Translated from {draft?.original_language}</div>
-            <div className="t-meta text-ink-muted">Read from your poster. Check the amber fields.</div>
+            <div className="t-body-strong text-maas">{t("create.review.translated", { language: t.language(draft?.original_language ?? "") })}</div>
+            <div className="t-meta text-ink-muted">{t("create.review.translatedHint")}</div>
           </div>
         </Card>
       ) : null}
 
       <div className="flex flex-col gap-1.5">
-        <span className="t-label text-ink-muted">Image</span>
+        <span className="t-label text-ink-muted">{t("create.review.image")}</span>
         <Card tight className="flex! flex-row items-center gap-3">
           {posterImage ? (
             <>
@@ -87,11 +89,11 @@ export function ReviewStep({
                 <img src={posterImage} alt="" className="h-full w-full object-cover" />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="t-body-strong text-ink">Your poster</div>
-                <div className="t-meta text-ink-muted">Shown on the card and the event page</div>
+                <div className="t-body-strong text-ink">{t("create.review.yourPoster")}</div>
+                <div className="t-meta text-ink-muted">{t("create.review.posterHint")}</div>
               </div>
               <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                Change
+                {t("common.change")}
               </Button>
             </>
           ) : (
@@ -100,11 +102,11 @@ export function ReviewStep({
                 <Icon name="image" size={20} />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="t-body-strong text-ink">No image yet</div>
-                <div className="t-meta text-ink-muted">Publishes as a compact card</div>
+                <div className="t-body-strong text-ink">{t("create.review.noImage")}</div>
+                <div className="t-meta text-ink-muted">{t("create.review.noImageHint")}</div>
               </div>
               <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                Add an image
+                {t("create.review.addImage")}
               </Button>
             </>
           )}
@@ -119,39 +121,26 @@ export function ReviewStep({
         {imageError ? <span className="t-meta text-warn">{imageError}</span> : null}
       </div>
 
-      <Field label="Title" value={form.title} onChange={(v) => set("title", v)} missing={missingFields.has("title")} />
+      <Field label={t("create.review.title")} value={form.title} onChange={(v) => set("title", v)} missing={missingFields.has("title")} />
 
       <div className="grid grid-cols-2 gap-3">
         <div className={cx("rounded-xl transition-shadow", highlightDate && "shadow-ring")}>
-          <Field
-            label="Date"
-            type="date"
-            value={form.date}
-            onChange={(v) => set("date", v)}
-            missing={startMissing}
-          />
+          <Field label={t("create.review.date")} type="date" value={form.date} onChange={(v) => set("date", v)} missing={startMissing} />
         </div>
         <Field
-          label="Start"
+          label={t("create.review.start")}
           type="time"
           value={form.startTime}
           onChange={(v) => set("startTime", v)}
           missing={startMissing || timeMissing}
-          hint={timeMissing && !startMissing ? "Time not found — please check" : undefined}
+          hint={timeMissing && !startMissing ? t("create.review.timeMissing") : undefined}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <Field label={t("create.review.end")} type="time" value={form.endTime} onChange={(v) => set("endTime", v)} missing={Boolean(draft)} />
         <Field
-          label="End"
-          type="time"
-          value={form.endTime}
-          onChange={(v) => set("endTime", v)}
-          missing={Boolean(draft)}
-          hint={draft ? "Not on the poster — please add it" : undefined}
-        />
-        <Field
-          label="Price"
+          label={t("create.review.price")}
           type="number"
           inputMode="decimal"
           placeholder="0"
@@ -161,15 +150,10 @@ export function ReviewStep({
         />
       </div>
 
+      <Field label={t("create.review.location")} value={form.location_name} onChange={(v) => set("location_name", v)} missing={missingFields.has("location_name")} />
       <Field
-        label="Location"
-        value={form.location_name}
-        onChange={(v) => set("location_name", v)}
-        missing={missingFields.has("location_name")}
-      />
-      <Field
-        label="Address"
-        placeholder="Street and number"
+        label={t("create.review.address")}
+        placeholder={t("create.review.addressPlaceholder")}
         value={form.address}
         onChange={(v) => set("address", v)}
         missing={missingFields.has("address")}
@@ -178,22 +162,22 @@ export function ReviewStep({
       <div className="relative">
         <Field
           kind="select"
-          label="Category"
-          value={form.category}
+          label={t("create.review.category")}
+          value={t.category(form.category)}
           onOpen={openCategoryPicker}
           missing={categoryMissing}
-          trailing={!categoryMissing && draft ? <span className="text-maas">AI guess</span> : undefined}
+          trailing={!categoryMissing && draft ? <span className="text-maas">{t("create.review.aiGuess")}</span> : undefined}
         />
         <select
           ref={categoryRef}
           value={form.category}
           onChange={(event) => set("category", event.target.value as EventCategory)}
-          aria-label="Category"
+          aria-label={t("create.review.category")}
           className="sr-only"
         >
           {EVENT_CATEGORIES.map((category) => (
             <option key={category} value={category}>
-              {category}
+              {t.category(category)}
             </option>
           ))}
         </select>
@@ -201,23 +185,23 @@ export function ReviewStep({
 
       <Field
         kind="switch"
-        label="Newcomers welcome"
+        label={t("common.newcomers")}
         checked={form.newcomer_friendly}
         onChange={(checked) => set("newcomer_friendly", checked)}
-        hint={draft?.newcomer_friendly ? 'Your poster says "iedereen welkom"' : undefined}
+        hint={draft?.newcomer_friendly ? t("create.review.newcomersHint") : undefined}
       />
 
       <Field
-        label="Sign-up URL"
+        label={t("create.review.signup")}
         placeholder="https://…"
         value={form.signup_url}
         onChange={(v) => set("signup_url", v)}
-        hint={!urlValid ? "That doesn't look like a valid link" : "Optional — a registration link, if there is one"}
+        hint={!urlValid ? t("create.review.signupInvalid") : t("create.review.signupHint")}
       />
 
       <Field
         kind="textarea"
-        label="Description"
+        label={t("create.review.description")}
         value={form.description}
         onChange={(v) => set("description", v)}
         missing={missingFields.has("description")}

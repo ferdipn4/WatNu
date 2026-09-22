@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/app/_lib/i18n";
 import type { ViewEvent } from "../_lib/view-data";
 
 function escapeIcsText(value: string): string {
@@ -25,6 +26,8 @@ function slugifyFilename(title: string): string {
 
 /** Downloads an .ics with title, times, location and the event URL in the notes — pure client-side, no backend involved. */
 export function AddToCalendarButton({ event }: { event: ViewEvent }) {
+  const t = useT();
+
   function handleClick() {
     const startDate = new Date(event.start);
     const endDate = event.end ? new Date(event.end) : new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
@@ -64,7 +67,7 @@ export function AddToCalendarButton({ event }: { event: ViewEvent }) {
 
   return (
     <Button variant="secondary" icon="calendar" onClick={handleClick}>
-      Add to calendar
+      {t("event.addToCalendar")}
     </Button>
   );
 }

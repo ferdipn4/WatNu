@@ -1,34 +1,10 @@
 /**
- * Date/time formatting shared by My WatNu (day groups) and Event detail (the
- * `.wn-fact` clock row), kept dependency-free so both routes can import it
- * without pulling in `Intl` locale quirks. All comparisons use the local
- * calendar day (via `Date`'s local getters), consistently for "now" and for
- * every event — see design/screens.md §4–5 for the exact copy this produces.
+ * Date/time formatting shared by My WatNu (day groups), the organizer profile and Event detail
+ * (the `.wn-fact` clock row). All comparisons use the local calendar day (via `Date`'s local
+ * getters), consistently for "now" and for every event — see design/screens.md §4–5 for the exact
+ * copy this produces. Names come from app/_lib/i18n/dates.ts in the UI language.
  */
-const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const WEEKDAY_LONG = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
-const MONTH_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+import { dateNames, dayOnlyFromParts, shortDateFromParts, type Locale } from "@/app/_lib/i18n";
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -39,13 +15,13 @@ export function formatTime(d: Date): string {
 }
 
 /** "Mon 21 Sep" — weekday, day, short month, no year, per design/README.md. */
-export function formatShortDate(d: Date): string {
-  return `${WEEKDAY_SHORT[d.getDay()]} ${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`;
+export function formatShortDate(d: Date, locale: Locale): string {
+  return shortDateFromParts(locale, d.getDay(), d.getDate(), d.getMonth());
 }
 
 /** "21 Sep" — no weekday, used beside a day header that already names the weekday. */
-export function formatDayOnly(d: Date): string {
-  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`;
+export function formatDayOnly(d: Date, locale: Locale): string {
+  return dayOnlyFromParts(locale, d.getDate(), d.getMonth());
 }
 
 function startOfDay(d: Date): Date {
@@ -66,11 +42,12 @@ export function dayKey(d: Date): string {
 }
 
 /** Day-group header: "Today" / "Tomorrow", then the weekday name — each with the short date beside it. */
-export function dayHeaderLabel(d: Date, now: Date = new Date()): { name: string; date: string } {
+export function dayHeaderLabel(d: Date, locale: Locale, now: Date = new Date()): { name: string; date: string } {
+  const names = dateNames(locale);
   const diff = diffCalendarDays(d, now);
-  if (diff === 0) return { name: "Today", date: formatShortDate(d) };
-  if (diff === 1) return { name: "Tomorrow", date: formatShortDate(d) };
-  return { name: WEEKDAY_LONG[d.getDay()], date: formatDayOnly(d) };
+  if (diff === 0) return { name: names.today, date: formatShortDate(d, locale) };
+  if (diff === 1) return { name: names.tomorrow, date: formatShortDate(d, locale) };
+  return { name: names.weekdayLong[d.getDay()], date: formatDayOnly(d, locale) };
 }
 
 /**
@@ -78,26 +55,10 @@ export function dayHeaderLabel(d: Date, now: Date = new Date()): { name: string;
  * 17:00) / "Tomorrow" is prefixed within 48 hours (design/screens.md §5); further out the short
  * date already names the weekday: "Thu 24 Sep · 19:00".
  */
-export function factClockText(start: Date, end: Date | null, now: Date = new Date()): string {
+export function factClockText(start: Date, end: Date | null, locale: Locale, now: Date = new Date()): string {
+  const names = dateNames(locale);
   const diff = diffCalendarDays(start, now);
-  const prefix = diff === 0 ? (start.getHours() >= 17 ? "Tonight, " : "Today, ") : diff === 1 ? "Tomorrow, " : "";
+  const prefix = diff === 0 ? `${start.getHours() >= 17 ? names.tonight : names.today}, ` : diff === 1 ? `${names.tomorrow}, ` : "";
   const timeRange = end ? `${formatTime(start)}–${formatTime(end)}` : formatTime(start);
-  return `${prefix}${formatShortDate(start)} · ${timeRange}`;
-}
-
-/**
- * The promo sheet's context line: "Salsa Sociëteit at Café Mestreech ·
- * tonight until 23:00" (design/screens.md §5).
- */
-export function promoSheetContext(
-  organizerName: string,
-  location: string,
-  start: Date,
-  end: Date | null,
-  now: Date = new Date(),
-): string {
-  const diff = diffCalendarDays(start, now);
-  const dayWord = diff === 0 ? "tonight" : diff === 1 ? "tomorrow" : formatShortDate(start);
-  const when = end ? `${dayWord} until ${formatTime(end)}` : `${dayWord} from ${formatTime(start)}`;
-  return `${organizerName} at ${location} · ${when}`;
+  return `${prefix}${formatShortDate(start, locale)} · ${timeRange}`;
 }

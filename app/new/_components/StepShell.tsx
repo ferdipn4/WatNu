@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { cx } from "@/components/ui/Icon";
 import { TopBar } from "@/app/_components/TopBar";
+import { useT } from "@/app/_lib/i18n";
 
 /**
  * The 52px top bar and four-segment step indicator — plain markup per
@@ -24,10 +25,11 @@ export function StepShell({
   footer?: ReactNode;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="flex min-h-dvh flex-col">
       <TopBar title={title} close={close} onBack={onBack} />
-      <div className="flex gap-1 px-4 pb-3" aria-label={`Step ${step} of 4`}>
+      <div className="flex gap-1 px-4 pb-3" aria-label={t("create.step", { step })}>
         {([1, 2, 3, 4] as const).map((i) => (
           <i key={i} className={cx("h-1 flex-1 rounded-full", i <= step ? "bg-accent" : "bg-line")} />
         ))}

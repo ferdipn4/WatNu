@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useT } from "@/app/_lib/i18n";
 import { Card } from "./Card";
 import { Chip } from "./Chip";
 import { Icon, cx } from "./Icon";
@@ -44,6 +47,7 @@ export function EventCard({
   onClick,
   className,
 }: EventCardProps) {
+  const t = useT();
   const free = price == null || price === 0;
   const meta = location === organizer ? location : [location, organizer].filter(Boolean).join(" · ");
   const showSave = onSave !== null;
@@ -71,17 +75,17 @@ export function EventCard({
           <div className="line-clamp-2 text-[15px] font-semibold leading-5 text-ink">{title}</div>
           <div className="truncate text-[13px] font-medium leading-[18px] text-ink-muted">{meta}</div>
           <div className="mt-0.5 flex flex-wrap gap-1">
-            <Chip size="sm" label={category} />
-            {newcomers ? <Chip size="sm" tone="maas" label="Newcomers welcome" /> : null}
+            <Chip size="sm" label={t.category(category)} />
+            {newcomers ? <Chip size="sm" tone="maas" label={t("common.newcomers")} /> : null}
           </div>
         </div>
         <div className="flex flex-none flex-col items-end justify-between gap-2">
-          {free ? <Chip size="sm" tone="maas" label="Free" /> : <span className="text-[13px] font-bold leading-[22px] tabular-nums text-ink">€{price}</span>}
+          {free ? <Chip size="sm" tone="maas" label={t("common.free")} /> : <span className="text-[13px] font-bold leading-[22px] tabular-nums text-ink">€{price}</span>}
           {showSave ? (
             <span
               role="button"
               tabIndex={0}
-              aria-label={saved ? "Saved" : "Save"}
+              aria-label={saved ? t("common.saved") : t("common.save")}
               aria-pressed={saved ? "true" : "false"}
               onClick={(e) => {
                 e.stopPropagation();

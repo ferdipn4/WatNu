@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -10,9 +10,10 @@ import { OrgLogo, type OrganizerType } from "@/components/ui/OrgLogo";
 import { Toast } from "@/components/ui/Toast";
 import { EVENT_CATEGORIES, type EventCategory } from "@/lib/types";
 import { TopBar } from "@/app/_components/TopBar";
+import { useAuth } from "@/app/_lib/auth";
+import { signInHref } from "@/app/_lib/auth-paths";
 import { patchJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
-import { isOrganizerOf, releaseOrganizer } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import type { ViewOrganizer } from "@/app/e/_lib/view-data";
 import { resizeImageFile } from "@/app/new/_lib/resize-image";
@@ -73,11 +74,10 @@ function openPicker(ref: RefObject<HTMLSelectElement | null>) {
 export function EditOrganizerScreen({ slug, organizer }: { slug: string; organizer: ViewOrganizer | null }) {
   const router = useRouter();
   const t = useT();
+  const { ready, user, isMemberOf } = useAuth();
   const { toast } = useToast();
   const [initial] = useState<FormState | null>(() => (organizer ? formFrom(organizer) : null));
   const [form, setForm] = useState<FormState | null>(initial);
-  /** null until the organizer token has been read from localStorage after mount */
-  const [allowed, setAllowed] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
@@ -85,13 +85,8 @@ export function EditOrganizerScreen({ slug, organizer }: { slug: string; organiz
   const typeSelectRef = useRef<HTMLSelectElement>(null);
   const categorySelectRef = useRef<HTMLSelectElement>(null);
 
-  useEffect(() => {
-    // One-time hydration of client-only localStorage state after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAllowed(isOrganizerOf(slug));
-  }, [slug]);
-
   const profileUrl = `/organizers/${slug}`;
+  const editUrl = `${profileUrl}/edit`;
 
   function close() {
     router.push(profileUrl);
@@ -130,11 +125,6 @@ export function EditOrganizerScreen({ slug, organizer }: { slug: string; organiz
     }
   }
 
-  function stopManaging() {
-    releaseOrganizer(slug);
-    router.push(profileUrl);
-  }
-
   if (!organizer || !form || !initial) {
     return (
       <div className="flex min-h-dvh flex-col">
@@ -150,19 +140,35 @@ export function EditOrganizerScreen({ slug, organizer }: { slug: string; organiz
     );
   }
 
-  if (allowed === false) {
+  // Until the session is known nothing organizer-only shows; then: signed out → sign in, wrong account → no access.
+  if (!ready) {
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <TopBar title={t("edit.title")} close onBack={close} />
+      </div>
+    );
+  }
+
+  if (!user || !isMemberOf(slug)) {
+    const signedOut = !user;
     return (
       <div className="flex min-h-dvh flex-col">
         <TopBar title={t("edit.title")} close onBack={close} />
         <div className="flex flex-col items-center gap-3 px-6 pt-24 text-center">
           <span className="grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-soft text-accent">
-            <Icon name="pencil" size={32} />
+            <Icon name={signedOut ? "user" : "pencil"} size={32} />
           </span>
-          <h2 className="t-heading text-ink">{t("edit.forbidden.title")}</h2>
-          <p className="t-body text-ink-muted">{t("edit.forbidden.body", { name: organizer.name })}</p>
-          <Button className="mt-2" variant="secondary" onClick={close}>
-            {t("edit.forbidden.action")}
-          </Button>
+          <h2 className="t-heading text-ink">{signedOut ? t("edit.signedOut.title") : t("edit.forbidden.title")}</h2>
+          <p className="t-body text-ink-muted">{signedOut ? t("edit.signedOut.body") : t("edit.forbidden.body", { name: organizer.name })}</p>
+          {signedOut ? (
+            <Button className="mt-2" onClick={() => router.push(signInHref(editUrl))}>
+              {t("signin.submit")}
+            </Button>
+          ) : (
+            <Button className="mt-2" variant="secondary" onClick={close}>
+              {t("edit.forbidden.action")}
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -250,10 +256,6 @@ export function EditOrganizerScreen({ slug, organizer }: { slug: string; organiz
           value={form.description}
           onChange={(value) => set("description", value)}
         />
-
-        <Button variant="ghost" className="mt-3 self-center" onClick={stopManaging}>
-          {t("edit.stop")}
-        </Button>
       </div>
 
       <div className="sticky bottom-0 flex-none border-t border-line bg-surface px-4 pt-3 pb-[max(24px,env(safe-area-inset-bottom))]">

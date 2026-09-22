@@ -19,7 +19,7 @@ export const features = {
   share: 'live',          // native share sheet / copy link
   promoCodes: 'local',    // the promo card + QR sheet on the detail screen, the 10% off tag — demo data, redemptions counted in localStorage
   organizerStats: 'soon', // the stats card on the organizer profile
-  organizerProfile: 'local', // "Do you run …?" on a profile + Edit profile: the claim lives on this phone (no accounts), the save is real (PATCH /api/organizers/[slug])
+  organizerProfile: 'live', // organizer accounts (Supabase Auth, demo accounts from scripts/create-demo-organizer.ts): sign in, Edit profile, publish — row level security only lets members write
   search: 'live',         // the organizer directory search
 } as const satisfies Record<string, FeatureStatus>;
 

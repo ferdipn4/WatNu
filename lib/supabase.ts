@@ -17,26 +17,41 @@ const publicUrl = toProjectUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const publicAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-let browserClient: SupabaseClient | null = null;
+let anonClient: SupabaseClient | null = null;
 let serviceClient: SupabaseClient | null = null;
 
 /**
- * Anon-key client, safe in the browser and on the server.
- * Returns null when the public env vars are missing so callers can fall back.
+ * Anon-key client for reads, safe on the server. Row level security lets it
+ * read everything and write nothing. Returns null when the public env vars
+ * are missing so callers can fall back.
  */
 export function getSupabaseClient(): SupabaseClient | null {
   if (!publicUrl || !publicAnonKey) return null;
 
-  browserClient ??= createClient(publicUrl, publicAnonKey, {
+  anonClient ??= createClient(publicUrl, publicAnonKey, {
     auth: { persistSession: false },
   });
 
-  return browserClient;
+  return anonClient;
 }
 
 /**
- * Service-role client. Bypasses row level security, so it must never be
- * imported from a client component.
+ * A client acting as one signed-in user: the anon key plus the user's access
+ * token from the request's Authorization header, so every write goes through
+ * row level security as that user. One instance per request, never cached.
+ */
+export function getSupabaseUserClient(accessToken: string): SupabaseClient | null {
+  if (!publicUrl || !publicAnonKey) return null;
+
+  return createClient(publicUrl, publicAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+}
+
+/**
+ * Service-role client. Bypasses row level security, so the app never uses
+ * it: it exists for scripts/ (creating demo organizer accounts) only.
  */
 export function getSupabaseServiceClient(): SupabaseClient {
   if (typeof window !== "undefined") {

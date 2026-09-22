@@ -7,12 +7,6 @@
 
 const FOLLOWED_ORGANIZERS_KEY = "watnu:followed-organizers";
 const SAVED_EVENTS_KEY = "watnu:saved-events";
-/**
- * The v1 "organizer token" from design/screens.md: the browser that published an organizer's
- * events — or claimed the profile via "Do you run …?" — remembers that organizer's slug, and
- * only that browser sees the organizer-only parts (the stats card, Edit profile). No accounts.
- */
-const CLAIMED_ORGANIZERS_KEY = "watnu:published-organizers";
 /** The student's display name on the profile page — a label for this phone, never sent anywhere. */
 const DISPLAY_NAME_KEY = "watnu:display-name";
 
@@ -71,30 +65,6 @@ export function isEventSaved(id: string): boolean {
 
 export function toggleSavedEvent(id: string): boolean {
   return toggleInList(SAVED_EVENTS_KEY, id);
-}
-
-/** Makes this browser the organizer `slug` (after a publish, or via "Do you run …?" on the profile). */
-export function claimOrganizer(slug: string): void {
-  const list = readList(CLAIMED_ORGANIZERS_KEY);
-  if (!list.includes(slug)) writeList(CLAIMED_ORGANIZERS_KEY, [...list, slug]);
-}
-
-/** Forgets the organizer token for `slug` ("Stop managing this profile"). */
-export function releaseOrganizer(slug: string): void {
-  writeList(
-    CLAIMED_ORGANIZERS_KEY,
-    readList(CLAIMED_ORGANIZERS_KEY).filter((item) => item !== slug),
-  );
-}
-
-/** Whether this browser holds the organizer token for `slug`. */
-export function isOrganizerOf(slug: string): boolean {
-  return readList(CLAIMED_ORGANIZERS_KEY).includes(slug);
-}
-
-/** Every organizer this browser manages, for the profile page. */
-export function getClaimedOrganizers(): string[] {
-  return readList(CLAIMED_ORGANIZERS_KEY);
 }
 
 export function getDisplayName(): string {

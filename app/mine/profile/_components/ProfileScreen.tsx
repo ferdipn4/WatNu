@@ -12,18 +12,12 @@ import { OrganizerCard } from "@/components/ui/OrganizerCard";
 import { Toast } from "@/components/ui/Toast";
 import { isOff } from "@/lib/features";
 import { TopBar } from "@/app/_components/TopBar";
+import { useAuth } from "@/app/_lib/auth";
+import { signInHref } from "@/app/_lib/auth-paths";
 import { LOCALES, useLocale, useT, type Locale } from "@/app/_lib/i18n";
-import {
-  clearSavedAndFollowed,
-  getClaimedOrganizers,
-  getDisplayName,
-  getFollowedOrganizers,
-  getSavedEventIds,
-  setDisplayName,
-} from "@/app/_lib/store";
+import { clearSavedAndFollowed, getDisplayName, getFollowedOrganizers, getSavedEventIds, setDisplayName } from "@/app/_lib/store";
 import { getThemeMode, setThemeMode, type ThemeMode } from "@/app/_lib/theme";
 import { useToast } from "@/app/_lib/use-toast";
-import type { ViewOrganizer } from "@/app/e/_lib/view-data";
 
 const THEME_MODES: ThemeMode[] = ["system", "light", "dark"];
 
@@ -33,19 +27,22 @@ const LOCALE_LABELS: Record<Locale, string> = { en: "English", nl: "Nederlands" 
 /** How long "Tap again to clear" stays armed. */
 const CONFIRM_MS = 4000;
 
+const PROFILE_PATH = "/mine/profile";
+
 /**
  * Your profile and settings (no design preview; composed from the existing pieces: a 52px top bar,
- * the organizer profile's header row, Fields, chip rows for single choices, Cards).
+ * the organizer profile's header row, Fields, chip rows for single choices, Cards). Students stay
+ * without an account; the organizer account section at the bottom is the organizers' way in.
  */
-export function ProfileScreen({ organizers }: { organizers: ViewOrganizer[] }) {
+export function ProfileScreen() {
   const router = useRouter();
   const t = useT();
   const { locale, setLocale } = useLocale();
+  const { ready, available, user, organizers, signOut } = useAuth();
   const { toast, show } = useToast();
 
   const [name, setName] = useState("");
   const [theme, setTheme] = useState<ThemeMode>("system");
-  const [claimedSlugs, setClaimedSlugs] = useState<string[]>([]);
   const [savedCount, setSavedCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -55,7 +52,6 @@ export function ProfileScreen({ organizers }: { organizers: ViewOrganizer[] }) {
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
     setName(getDisplayName());
     setTheme(getThemeMode());
-    setClaimedSlugs(getClaimedOrganizers());
     setSavedCount(getSavedEventIds().length);
     setFollowingCount(getFollowedOrganizers().length);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -93,10 +89,13 @@ export function ProfileScreen({ organizers }: { organizers: ViewOrganizer[] }) {
     show(t("toast.cleared"), "done");
   }
 
-  const claimedOrganizers = claimedSlugs
-    .map((slug) => organizers.find((organizer) => organizer.slug === slug))
-    .filter((organizer): organizer is ViewOrganizer => !!organizer);
+  async function handleSignOut() {
+    await signOut();
+    show(t("toast.signedOut"));
+  }
+
   const trimmedName = name.trim();
+  const showAccount = available && !isOff("organizerProfile");
 
   return (
     <div className="flex min-h-dvh flex-col pb-10">
@@ -139,36 +138,6 @@ export function ProfileScreen({ organizers }: { organizers: ViewOrganizer[] }) {
           <p className="t-meta text-ink-muted">{t("you.language.hint")}</p>
         </section>
 
-        {!isOff("organizerProfile") ? (
-          <section className="flex flex-col gap-3">
-            <div className="mt-1">
-              <h2 className="t-heading text-ink">{t("you.organizers")}</h2>
-              {claimedOrganizers.length > 0 ? <p className="t-meta mt-0.5 text-ink-muted">{t("you.organizers.hint")}</p> : null}
-            </div>
-            {claimedOrganizers.length > 0 ? (
-              claimedOrganizers.map((organizer) => (
-                <OrganizerCard
-                  key={organizer.slug}
-                  name={organizer.name}
-                  type={organizer.type}
-                  category={organizer.category}
-                  logo={organizer.logo}
-                  onFollow={null}
-                  onClick={() => router.push(`/organizers/${organizer.slug}/edit`)}
-                />
-              ))
-            ) : (
-              <Card tone="sunken" tight onClick={() => router.push("/organizers")} className="flex! items-center gap-3">
-                <span className="min-w-0 flex-1">
-                  <span className="t-body-strong block text-ink">{t("you.organizers.none.title")}</span>
-                  <span className="t-meta block text-ink-muted">{t("you.organizers.none.body")}</span>
-                </span>
-                <Icon name="chevron-right" className="flex-none text-ink-muted" />
-              </Card>
-            )}
-          </section>
-        ) : null}
-
         <section className="flex flex-col gap-3">
           <h2 className="t-heading mt-1 text-ink">{t("you.data")}</h2>
           <Card tight>
@@ -186,6 +155,50 @@ export function ProfileScreen({ organizers }: { organizers: ViewOrganizer[] }) {
             {confirmClear ? t("you.data.clearConfirm") : t("you.data.clear")}
           </Button>
         </section>
+
+        {showAccount && ready ? (
+          <section className="flex flex-col gap-3">
+            <div className="mt-1">
+              <h2 className="t-heading text-ink">{t("you.account")}</h2>
+              {user ? (
+                <p className="t-meta mt-0.5 text-ink-muted">
+                  {t("you.account.signedInAs", { email: user.email ?? "" })}
+                  {organizers.length > 0 ? ` · ${t("you.account.organizersHint")}` : ""}
+                </p>
+              ) : null}
+            </div>
+            {user ? (
+              <>
+                {organizers.length > 0 ? (
+                  organizers.map((organizer) => (
+                    <OrganizerCard
+                      key={organizer.slug}
+                      name={organizer.name}
+                      type={organizer.type}
+                      category={organizer.category}
+                      logo={organizer.logo}
+                      onFollow={null}
+                      onClick={() => router.push(`/organizers/${organizer.slug}/edit`)}
+                    />
+                  ))
+                ) : (
+                  <p className="t-body text-ink-muted">{t("you.account.noOrganizers")}</p>
+                )}
+                <Button variant="ghost" className="self-center" onClick={handleSignOut}>
+                  {t("you.account.signOut")}
+                </Button>
+              </>
+            ) : (
+              <Card tone="sunken" tight onClick={() => router.push(signInHref(PROFILE_PATH))} className="flex! items-center gap-3">
+                <span className="min-w-0 flex-1">
+                  <span className="t-body-strong block text-ink">{t("you.account.none.title")}</span>
+                  <span className="t-meta block text-ink-muted">{t("you.account.none.body")}</span>
+                </span>
+                <Icon name="chevron-right" className="flex-none text-ink-muted" />
+              </Card>
+            )}
+          </section>
+        ) : null}
       </div>
 
       {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}

@@ -6,7 +6,7 @@ import {
   handleRouteError,
   readJsonBody,
   requireSupabaseReadClient,
-  requireSupabaseServiceClient,
+  requireUser,
 } from "@/lib/api";
 import { updateOrganizerSchema, validationError } from "@/lib/schemas";
 
@@ -57,11 +57,14 @@ export async function GET(
   }
 }
 
+/** Updates the signed-in organizer's own profile. Another organizer's profile is invisible to the update and comes back as 404. */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
+    const { supabase } = await requireUser(request);
+
     // Next.js 16: dynamic route params resolve asynchronously.
     const { slug } = await params;
     const body = await readJsonBody(request);
@@ -70,7 +73,6 @@ export async function PATCH(
       return NextResponse.json(validationError(parsed.error), { status: 400 });
     }
 
-    const supabase = requireSupabaseServiceClient();
     const { data: organizer, error } = await supabase
       .from("organizers")
       .update(parsed.data)
@@ -82,7 +84,7 @@ export async function PATCH(
       throw new HttpError(502, `Could not update organizer: ${error.message}`);
     }
     if (!organizer) {
-      throw new HttpError(404, `No organizer with slug "${slug}".`);
+      throw new HttpError(404, `No organizer with slug "${slug}" that you manage.`);
     }
 
     return NextResponse.json({ organizer });

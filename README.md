@@ -18,14 +18,30 @@ Open [http://localhost:3000](http://localhost:3000).
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key, used for all reads |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key, server-only, used for writes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key, only for `scripts/create-demo-organizer.ts`; the app never uses it |
 | `ANTHROPIC_API_KEY` | Preferred AI provider |
 | `XAI_API_KEY` | Fallback provider (OpenAI SDK against `https://api.x.ai/v1`) |
 
 `lib/ai.ts` uses Anthropic when `ANTHROPIC_API_KEY` is set and otherwise falls back
 to xAI. If neither key is present it throws.
 
-Apply the database schema from `supabase/schema.sql` in the Supabase SQL editor.
+Apply the database schema from `supabase/schema.sql` in the Supabase SQL editor
+(it is idempotent; re-run it after pulling schema changes).
+
+### Organizer accounts
+
+Organizers sign in with email and password (Supabase Auth); students never do.
+There is no self-signup: create a demo account and link it to an organizer with
+
+```bash
+node --env-file=.env.local --experimental-strip-types scripts/create-demo-organizer.ts demo@complex.test some-password complex-maastricht
+```
+
+Row level security does the rest: everyone reads `organizers` and `events`,
+only a member of an organizer (a row in `organizer_members`) updates that
+organizer and inserts, updates or deletes events under its slug. The write
+routes below and `POST /api/ingest` need the signed-in user's access token in
+an `Authorization: Bearer <token>` header; the app adds it automatically.
 
 ## API
 
@@ -41,7 +57,8 @@ put the body in a file and pass `--data-binary "@body.json"` instead of `-d`.
 ### `POST /api/ingest`
 
 Extracts event drafts from one or more poster images, a block of text, or both.
-Nothing is saved — an organizer reviews the drafts first. Each image must be
+Nothing is saved — an organizer reviews the drafts first. Needs a signed-in
+organizer (`Authorization: Bearer <token>`), since every call costs an AI request. Each image must be
 under 4 MB decoded, and a request may include at most 3 images.
 
 ```bash
@@ -128,6 +145,18 @@ Returns the organizer plus their upcoming events.
 ```bash
 curl.exe "http://localhost:3000/api/organizers/de-kroeg"
 ```
+
+### `GET /api/me`
+
+The signed-in user and the organizers they manage.
+
+```bash
+curl.exe -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/me
+```
+
+`PATCH /api/organizers/[slug]`, `PATCH /api/events/[id]` and
+`DELETE /api/events/[id]` take the same header and only touch rows the signed-in
+organizer manages (404 for anyone else's).
 
 ## Test assets
 

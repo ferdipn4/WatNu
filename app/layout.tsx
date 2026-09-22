@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, DM_Sans } from 'next/font/google';
 import Script from 'next/script';
+import { AuthProvider } from '@/app/_lib/auth';
 import { LocaleProvider } from '@/app/_lib/i18n/provider';
 import { getServerLocale } from '@/app/_lib/i18n/server';
 import './globals.css';
@@ -38,7 +39,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {THEME_SCRIPT}
         </Script>
         <LocaleProvider initialLocale={locale}>
-          <div id="app">{children}</div>
+          <AuthProvider>
+            <div id="app">{children}</div>
+          </AuthProvider>
         </LocaleProvider>
       </body>
     </html>

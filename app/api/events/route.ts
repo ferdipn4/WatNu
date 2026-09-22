@@ -5,9 +5,10 @@ import {
   HttpError,
   flattenOrganizer,
   handleRouteError,
+  isRowLevelSecurityError,
   readJsonBody,
   requireSupabaseReadClient,
-  requireSupabaseServiceClient,
+  requireUser,
 } from "@/lib/api";
 import {
   createEventSchema,
@@ -57,15 +58,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/** Saves a reviewed event as the signed-in organizer; row level security only accepts their own `organizer_slug`. */
 export async function POST(request: Request) {
   try {
+    const { supabase } = await requireUser(request);
+
     const body = await readJsonBody(request);
     const parsed = createEventSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(validationError(parsed.error), { status: 400 });
     }
 
-    const supabase = requireSupabaseServiceClient();
     const { data, error } = await supabase
       .from("events")
       .insert({ ...parsed.data, start: new Date(parsed.data.start).toISOString() })
@@ -73,6 +76,9 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
+      if (isRowLevelSecurityError(error)) {
+        throw new HttpError(403, "You can only publish events for an organizer you manage.");
+      }
       throw new HttpError(502, `Could not save the event: ${error.message}`);
     }
 

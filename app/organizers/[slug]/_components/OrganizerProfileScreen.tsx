@@ -13,30 +13,25 @@ import { Toast } from "@/components/ui/Toast";
 import { WarningPanel } from "@/components/ui/WarningPanel";
 import { isOff, isSoon } from "@/lib/features";
 import { TopBar } from "@/app/_components/TopBar";
+import { useAuth } from "@/app/_lib/auth";
+import { signInHref } from "@/app/_lib/auth-paths";
 import { useT } from "@/app/_lib/i18n";
-import {
-  claimOrganizer,
-  getSavedEventIds,
-  isFollowingOrganizer,
-  isOrganizerOf,
-  toggleFollowOrganizer,
-  toggleSavedEvent,
-} from "@/app/_lib/store";
+import { getSavedEventIds, isFollowingOrganizer, toggleFollowOrganizer, toggleSavedEvent } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import { formatTime } from "@/app/e/_lib/format";
 import type { ViewEvent, ViewOrganizer } from "@/app/e/_lib/view-data";
 
 /**
  * The organizer profile: 52px top bar (back, share), header row, Follow, description, the
- * organizer-only stats, Upcoming. The browser that holds the organizer token (published as them,
- * or claimed the profile via "Do you run …?") sees Edit profile instead of Follow.
+ * organizer-only stats, Upcoming. A signed-in account that manages this organizer sees Edit
+ * profile instead of Follow.
  */
 export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewOrganizer | null; events: ViewEvent[] }) {
   const router = useRouter();
   const t = useT();
+  const { ready, user, isMemberOf } = useAuth();
   const { toast, show, showSoon } = useToast();
   const [following, setFollowing] = useState(false);
-  const [isOrganizer, setIsOrganizer] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
 
   const slug = organizer?.slug ?? null;
@@ -45,7 +40,6 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
     if (!slug) return;
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
     setFollowing(isFollowingOrganizer(slug));
-    setIsOrganizer(isOrganizerOf(slug));
     setSavedIds(new Set(getSavedEventIds()));
     /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -113,17 +107,14 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
   }
 
   const instagramHandle = organizer.instagram?.replace(/^@/, "");
-  const editUrl = `/organizers/${organizer.slug}/edit`;
+  const profileUrl = `/organizers/${organizer.slug}`;
+  const editUrl = `${profileUrl}/edit`;
   const saveOff = isOff("save");
   const saveSoon = isSoon("save");
-  // features.organizerProfile: local = claim + edit on this phone, soon = the controls stay and show the toast, off = students only.
+  // features.organizerProfile: live = sign in + edit, soon = the controls stay and show the toast, off = students only.
   const manageOff = isOff("organizerProfile");
   const manageSoon = isSoon("organizerProfile");
-
-  function manageProfile() {
-    claimOrganizer(organizer!.slug);
-    router.push(editUrl);
-  }
+  const isOrganizer = ready && isMemberOf(organizer.slug);
 
   return (
     <div className="flex min-h-dvh flex-col pb-6">
@@ -172,7 +163,7 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
 
         {organizer.description ? <p className="t-body text-ink">{organizer.description}</p> : null}
 
-        {/* The stats card renders only for the organizer: the browser that holds the token (design/screens.md §2). */}
+        {/* The stats card renders only for the organizer's own account (design/screens.md §2). */}
         {isOrganizer && isSoon("organizerStats") ? (
           <WarningPanel tone="soon" title={t("org.stats.title")}>
             {t("org.stats.body")}
@@ -212,9 +203,9 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
           </div>
         )}
 
-        {/* No accounts: the organizer claims their profile on this phone, the same way follows and saves live here. */}
-        {!isOrganizer && !manageOff ? (
-          <Card tone="sunken" tight onClick={manageSoon ? showSoon : manageProfile} className="mt-2 flex! items-center gap-3">
+        {/* Signed out: the organizer's way in. A signed-in account that doesn't manage this organizer sees nothing here. */}
+        {ready && !user && !manageOff ? (
+          <Card tone="sunken" tight onClick={manageSoon ? showSoon : () => router.push(signInHref(profileUrl))} className="mt-2 flex! items-center gap-3">
             <span className="min-w-0 flex-1">
               <span className="t-body-strong block text-ink">{t("org.claim.title", { name: organizer.name })}</span>
               <span className="t-meta block text-ink-muted">{t("org.claim.body")}</span>

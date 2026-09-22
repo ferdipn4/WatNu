@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Toast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { isLive } from "@/lib/features";
 import type { DraftEvent } from "@/lib/schemas";
-import { getJson, postJson } from "@/app/_lib/http";
+import { useAuth } from "@/app/_lib/auth";
+import { signInHref } from "@/app/_lib/auth-paths";
+import { postJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
-import { claimOrganizer } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import { toDateInputValue, toTimeInputValue } from "../_lib/datetime";
 import { blankForm, draftToForm, formToCheckPayload, formToCreatePayload, isRequiredFilled, isValidOptionalUrl } from "../_lib/form";
@@ -21,7 +23,6 @@ import { UploadStep } from "./UploadStep";
 
 type Step = 1 | 2 | 3 | 4;
 type IngestPayload = { text?: string; imageBase64?: string; mediaType?: string };
-type ApiOrganizer = { slug: string; name: string };
 
 /** POST /api/events/check is only worth calling when at least one of the three checks is shown. */
 const ANY_CHECK_LIVE = isLive("conflictCheck") || isLive("duplicateCheck") || isLive("suggestions");
@@ -29,6 +30,7 @@ const ANY_CHECK_LIVE = isLive("conflictCheck") || isLive("duplicateCheck") || is
 export function CreateFlow() {
   const router = useRouter();
   const t = useT();
+  const { ready, user, organizers } = useAuth();
   const { toast, showSoon } = useToast();
   const [step, setStep] = useState<Step>(1);
 
@@ -42,8 +44,6 @@ export function CreateFlow() {
   const [form, setForm] = useState<FormState>(blankForm());
   const [highlightDate, setHighlightDate] = useState(false);
 
-  const [organizers, setOrganizers] = useState<Record<string, string>>({});
-
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [checkResult, setCheckResult] = useState<CheckResponse | null>(null);
@@ -53,18 +53,8 @@ export function CreateFlow() {
 
   const missingFields = new Set(draft?.missing_fields ?? []);
 
-  useEffect(() => {
-    getJson<{ organizers: ApiOrganizer[] }>("/api/organizers")
-      .then((body) => {
-        const map: Record<string, string> = {};
-        for (const organizer of body.organizers) map[organizer.slug] = organizer.name;
-        setOrganizers(map);
-      })
-      .catch(() => {
-        // Purely cosmetic (the step-4 preview's organizer label); a failed
-        // fetch here must not block the create flow.
-      });
-  }, []);
+  // The signed-in account publishes for the organizer it manages (the first one, if several).
+  const organizer = organizers[0] ?? null;
 
   // Step 2: run the real extraction once, when a payload is queued. `draft`
   // and `ingestError` are reset by the callers that set `pendingIngest`
@@ -193,13 +183,11 @@ export function CreateFlow() {
   }
 
   async function handlePublish() {
+    if (!organizer) return;
     setPublishing(true);
     setPublishError(null);
     try {
-      const organizerSlug = draft?.organizer_slug ?? null;
-      const result = await postJson<{ event: { id: string } }>("/api/events", formToCreatePayload(form, organizerSlug, posterImage));
-      // v1 organizer token: this browser now counts as the organizer (design/screens.md §2).
-      if (organizerSlug) claimOrganizer(organizerSlug);
+      const result = await postJson<{ event: { id: string } }>("/api/events", formToCreatePayload(form, organizer.slug, posterImage));
       // After publishing: Home, scrolled to the event, with the one maas toast (design/screens.md §3).
       router.push(`/?published=${encodeURIComponent(result.event.id)}`);
     } catch (error) {
@@ -208,7 +196,27 @@ export function CreateFlow() {
     }
   }
 
-  const organizerName = draft?.organizer_slug ? organizers[draft.organizer_slug] ?? null : null;
+  // Adding events is for signed-in organizers (the AI extraction costs money, and publishing needs an organizer).
+  if (!ready || !user || !organizer) {
+    return (
+      <StepShell step={1} title={t("create.newEvent")} close onBack={goToUpload}>
+        {ready ? (
+          <div className="flex flex-col items-center gap-3 px-2 pt-16 text-center">
+            <span className="grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-soft text-accent">
+              <Icon name="user" size={32} />
+            </span>
+            <h2 className="t-heading text-ink">{t("create.gate.title")}</h2>
+            <p className="t-body text-ink-muted">{user ? t("create.gate.noOrganizer") : t("create.gate.body")}</p>
+            {!user ? (
+              <Button className="mt-2" onClick={() => router.push(signInHref("/new"))}>
+                {t("signin.submit")}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </StepShell>
+    );
+  }
 
   return (
     <div className="relative flex min-h-dvh flex-col">
@@ -273,7 +281,7 @@ export function CreateFlow() {
         >
           <PublishStep
             form={form}
-            organizerName={organizerName}
+            organizerName={organizer.name}
             posterImage={posterImage}
             checkResult={checkResult}
             checking={checking}

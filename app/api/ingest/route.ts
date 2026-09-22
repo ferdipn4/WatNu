@@ -5,7 +5,7 @@ import {
   type AskJsonImage,
   type ImageMediaType,
 } from "@/lib/ai";
-import { HttpError, handleRouteError, readJsonBody } from "@/lib/api";
+import { HttpError, handleRouteError, readJsonBody, requireUser } from "@/lib/api";
 import { describeToday } from "@/lib/datetime";
 import {
   EVENT_CATEGORIES,
@@ -205,6 +205,9 @@ function buildPrompt(
 
 export async function POST(request: Request) {
   try {
+    // Every call costs an AI request, so only signed-in organizers may extract.
+    await requireUser(request);
+
     const body = await readJsonBody(request);
     const parsed = ingestRequestSchema.safeParse(body);
     if (!parsed.success) {

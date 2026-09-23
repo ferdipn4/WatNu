@@ -120,6 +120,21 @@ async function main(): Promise<void> {
       `status ${listed.status}, ${occurrences.length} occurrences`,
     );
 
+    // 6d. Skipping one date marks that occurrence cancelled without removing it from the list.
+    const secondStart = occurrences[1]?.start;
+    if (secondStart) {
+      const skipKey = new Date(secondStart).toLocaleDateString("sv-SE", { timeZone: "Europe/Amsterdam" });
+      const skipped = await api(token, "PATCH", `/api/events/${eventId}`, { skipped_dates: [skipKey] });
+      const relisted = await api(null, "GET", `/api/events?${windowQuery}`);
+      const rows = ((relisted.json as { events?: { id: string; start: string; cancelled?: boolean }[] } | null)?.events ?? []).filter((e) => e.id === eventId);
+      const cancelledRows = rows.filter((e) => e.cancelled);
+      record(
+        "skipped date comes back as cancelled",
+        skipped.status === 200 && rows.length === 4 && cancelledRows.length === 1 && cancelledRows[0].start === secondStart,
+        `status ${skipped.status}, ${rows.length} rows, ${cancelledRows.length} cancelled`,
+      );
+    }
+
     const deleted = await fetch(`${BASE_URL}/api/events/${eventId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
     record("delete own event", deleted.status === 204, `status ${deleted.status}`);
   }

@@ -30,6 +30,7 @@ function toHomeEvent(event: ViewEvent): HomeEvent {
     price: event.price,
     newcomers: event.newcomers,
     repeats: event.recurrence,
+    cancelled: event.cancelled,
     image: event.image,
   };
 }

@@ -3,7 +3,8 @@
  * occurrence, `repeat_until` the last day it happens (null = open-ended). The API expands a series
  * into occurrences inside the window a screen asks for, each an ordinary event row with the same
  * id and a shifted start/end. Shifts happen on the Europe/Amsterdam calendar, so a 20:00 event
- * stays at 20:00 across the DST switch.
+ * stays at 20:00 across the DST switch. A date the organizer skipped (`skipped_dates`) still
+ * comes back, flagged `cancelled`, so a saved run says "cancelled this week" instead of vanishing.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDaysToDateKey, amsterdamInstant, amsterdamParts } from "@/lib/datetime";
@@ -11,7 +12,7 @@ import { addDaysToDateKey, amsterdamInstant, amsterdamParts } from "@/lib/dateti
 export const RECURRENCES = ["weekly", "biweekly", "monthly"] as const;
 export type Recurrence = (typeof RECURRENCES)[number];
 
-/** Beyond this many occurrences per series (or this far ahead without a `to`) the expansion stops. */
+/** At most this many occurrences per series come back (and without a `to`, the window is this long). */
 const MAX_OCCURRENCES = 60;
 const DEFAULT_HORIZON_DAYS = 56;
 const DAY_MS = 86_400_000;
@@ -21,7 +22,28 @@ export type OccurrenceRow = {
   end: string | null;
   recurrence: Recurrence | null;
   repeat_until: string | null;
+  /** `YYYY-MM-DD` dates the organizer skipped; those occurrences are returned with `cancelled: true` */
+  skipped_dates?: string[] | null;
 };
+
+/** One occurrence of a row: the row with that occurrence's start/end, and whether the organizer skipped it. */
+export type Occurrence<T> = T & { cancelled: boolean };
+
+function dateKeyToUtcDay(key: string): number {
+  const [y, m, d] = key.split("-").map(Number);
+  return Date.UTC(y, m - 1, d);
+}
+
+/** How many steps of `recurrence` fit between two dates — the fast-forward to a window that starts long after the series did. */
+function stepsBetween(fromKey: string, toKey: string, recurrence: Recurrence): number {
+  if (recurrence === "monthly") {
+    const [fy, fm] = fromKey.split("-").map(Number);
+    const [ty, tm] = toKey.split("-").map(Number);
+    return (ty - fy) * 12 + (tm - fm);
+  }
+  const days = Math.round((dateKeyToUtcDay(toKey) - dateKeyToUtcDay(fromKey)) / DAY_MS);
+  return Math.floor(days / (recurrence === "weekly" ? 7 : 14));
+}
 
 /** `key` plus `months` calendar months, clamped to the last day of the target month (31 Jan → 28 Feb). */
 function addMonthsToDateKey(key: string, months: number): string {
@@ -41,12 +63,12 @@ function shiftDateKey(key: string, recurrence: Recurrence, steps: number): strin
  * The occurrences of `row` that start inside [from, to]. A one-off row is returned as is when it
  * fits the window. Without `to`, the horizon is eight weeks after `from` (or after the series start).
  */
-export function expandOccurrences<T extends OccurrenceRow>(row: T, from: Date | null, to: Date | null): T[] {
+export function expandOccurrences<T extends OccurrenceRow>(row: T, from: Date | null, to: Date | null): Occurrence<T>[] {
   const start = new Date(row.start);
   if (!row.recurrence) {
     if (from && start < from) return [];
     if (to && start > to) return [];
-    return [row];
+    return [{ ...row, cancelled: false }];
   }
 
   const { dateKey, hour, minute } = amsterdamParts(start);
@@ -56,9 +78,14 @@ export function expandOccurrences<T extends OccurrenceRow>(row: T, from: Date | 
   // The last day counts as a whole: an event on repeat_until itself still happens.
   const lastStart = row.repeat_until ? amsterdamInstant(addDaysToDateKey(row.repeat_until, 1)).getTime() - 1 : null;
 
-  const occurrences: T[] = [];
-  for (let step = 0; step < MAX_OCCURRENCES; step += 1) {
-    const occurrenceStart = amsterdamInstant(shiftDateKey(dateKey, row.recurrence, step), hour, minute);
+  const skipped = new Set(row.skipped_dates ?? []);
+  const occurrences: Occurrence<T>[] = [];
+  // Start one step before the window (a series can be years old); the cap counts what is returned, not what is skipped.
+  let step = Math.max(0, stepsBetween(dateKey, amsterdamParts(windowFrom).dateKey, row.recurrence) - 1);
+  while (occurrences.length < MAX_OCCURRENCES) {
+    const occurrenceKey = shiftDateKey(dateKey, row.recurrence, step);
+    const occurrenceStart = amsterdamInstant(occurrenceKey, hour, minute);
+    step += 1;
     if (occurrenceStart > windowTo) break;
     if (lastStart !== null && occurrenceStart.getTime() > lastStart) break;
     if (occurrenceStart < windowFrom) continue;
@@ -66,6 +93,7 @@ export function expandOccurrences<T extends OccurrenceRow>(row: T, from: Date | 
       ...row,
       start: occurrenceStart.toISOString(),
       end: durationMs === null ? null : new Date(occurrenceStart.getTime() + durationMs).toISOString(),
+      cancelled: skipped.has(occurrenceKey),
     });
   }
   return occurrences;
@@ -88,7 +116,7 @@ export async function queryOccurrences<T extends OccurrenceRow>(
   supabase: SupabaseClient,
   columns: string,
   query: OccurrenceQuery,
-): Promise<{ rows: T[]; error: { message: string } | null }> {
+): Promise<{ rows: Occurrence<T>[]; error: { message: string } | null }> {
   let request = supabase.from("events").select(columns).order("start", { ascending: true });
 
   if (query.from) {

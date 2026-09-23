@@ -132,6 +132,8 @@ A recurring event (`recurrence` = `weekly` / `biweekly` / `monthly`, optional
 The list routes expand it into occurrences inside `from`–`to` (`lib/occurrences.ts`):
 one copy per occurrence with the same `id` and a shifted `start` / `end`. Without
 `to` the window ends eight weeks after `from`; at most 60 occurrences per series.
+A date the organizer skipped (`skipped_dates`) still comes back, flagged
+`cancelled: true`, so saved events say "cancelled" instead of disappearing.
 
 ```bash
 curl.exe "http://localhost:3000/api/events"
@@ -161,7 +163,8 @@ curl.exe -X POST http://localhost:3000/api/events \
 `start`; ingest drafts carry it too when the poster says so. `recurrence`
 (`weekly` / `biweekly` / `monthly`) and `repeat_until` (`YYYY-MM-DD`) make it a
 series; ingest extracts them from "elke maandag"-style posters. Editing or
-deleting a series affects every occurrence.
+deleting a series affects every occurrence; `PATCH /api/events/[id]` with
+`skipped_dates` (the whole `YYYY-MM-DD` list) cancels single dates.
 
 ### `GET /api/organizers`
 

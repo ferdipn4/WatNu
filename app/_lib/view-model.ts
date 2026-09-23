@@ -3,6 +3,7 @@
  * imports here, so client components can map a row they fetched themselves (My WatNu's saved
  * past events); the server pages use app/e/_lib/view-data.ts on top of this.
  */
+import { amsterdamDateKey } from "@/lib/datetime";
 import { getDemoPromoForEvent } from "@/lib/promos";
 import type { Recurrence } from "@/lib/occurrences";
 import type { OrganizerType } from "@/lib/schemas";
@@ -23,6 +24,10 @@ export type ViewEvent = {
   recurrence?: Recurrence;
   /** the last day of the series, `YYYY-MM-DD`, when the organizer set one */
   repeatUntil?: string;
+  /** the `YYYY-MM-DD` dates the organizer skipped, on a series */
+  skippedDates?: string[];
+  /** this occurrence is one the organizer skipped ("cancelled this week") */
+  cancelled?: boolean;
   location: string;
   address?: string;
   walkFromStation?: string;
@@ -77,6 +82,8 @@ export function mapApiEvent(event: ApiEvent, organizer?: { name: string; type: s
     end: event.end ?? undefined,
     recurrence: event.recurrence ?? undefined,
     repeatUntil: event.repeat_until ?? undefined,
+    skippedDates: event.recurrence ? (event.skipped_dates ?? []) : undefined,
+    cancelled: event.cancelled === true || undefined,
     location: event.location_name ?? event.address ?? "Location to be announced",
     address: event.address ?? undefined,
     category: asCategory(event.category),
@@ -93,6 +100,11 @@ export function mapApiEvent(event: ApiEvent, organizer?: { name: string; type: s
     sourceLanguage: "en",
     promo: getDemoPromoForEvent(event.id) ?? undefined,
   };
+}
+
+/** The detail URL; an occurrence of a series names its date, so the detail shows that one and not the next. */
+export function eventHref(event: Pick<ViewEvent, "id" | "start" | "recurrence">): string {
+  return event.recurrence ? `/e/${event.id}?on=${amsterdamDateKey(event.start)}` : `/e/${event.id}`;
 }
 
 export function mapApiOrganizer(organizer: ApiOrganizer, upcomingCount?: number): ViewOrganizer {

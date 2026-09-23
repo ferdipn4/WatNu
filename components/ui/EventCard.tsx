@@ -28,6 +28,8 @@ export interface EventCardProps {
   repeats?: keyof typeof REPEAT_KICKER_KEYS;
   /** shows the "Newcomers welcome" tag */
   newcomers?: boolean;
+  /** an occurrence the organizer skipped: a warn "Cancelled" tag, and the card is muted */
+  cancelled?: boolean;
   saved?: boolean;
   /** bookmark toggle; pass null to hide the bookmark (the publish preview) */
   onSave?: ((saved: boolean) => void) | null;
@@ -48,6 +50,7 @@ export function EventCard({
   image,
   newcomers,
   repeats,
+  cancelled,
   saved,
   onSave,
   onClick,
@@ -69,7 +72,7 @@ export function EventCard({
       as={onClick ? "button" : "article"}
       tight
       onClick={onClick}
-      className={cx("flex! gap-3", image ? "flex-col overflow-hidden p-0!" : null, className)}
+      className={cx("flex! gap-3", image ? "flex-col overflow-hidden p-0!" : null, cancelled ? "opacity-60" : null, className)}
     >
       {imageEl}
       <div className={cx("flex flex-1 gap-3", image ? "p-3" : null)}>
@@ -87,6 +90,7 @@ export function EventCard({
           <div className="line-clamp-2 text-[15px] font-semibold leading-5 text-ink">{title}</div>
           <div className="truncate text-[13px] font-medium leading-[18px] text-ink-muted">{meta}</div>
           <div className="mt-0.5 flex flex-wrap gap-1">
+            {cancelled ? <Chip size="sm" tone="warn" label={t("event.cancelled")} /> : null}
             <Chip size="sm" label={t.category(category)} />
             {newcomers ? <Chip size="sm" tone="maas" label={t("common.newcomers")} /> : null}
           </div>

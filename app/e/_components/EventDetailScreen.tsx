@@ -9,7 +9,9 @@ import { EventPoster } from "@/components/ui/EventPoster";
 import { Icon, cx } from "@/components/ui/Icon";
 import { OrgLogo } from "@/components/ui/OrgLogo";
 import { Toast } from "@/components/ui/Toast";
+import { WarningPanel } from "@/components/ui/WarningPanel";
 import { isOff, isSoon } from "@/lib/features";
+import { expandOccurrences } from "@/lib/occurrences";
 import { TopBar } from "@/app/_components/TopBar";
 import { useAuth } from "@/app/_lib/auth";
 import { dateNames, useT } from "@/app/_lib/i18n";
@@ -116,6 +118,16 @@ export function EventDetailScreen({
       ? t("event.repeats.monthly")
       : t(event.recurrence === "weekly" ? "event.repeats.weekly" : "event.repeats.biweekly", { day: dateNames(t.locale).weekdayLong[start.getDay()] })
     : null;
+  // A skipped occurrence says so, and names the next date that is still on.
+  const nextOccurrence =
+    event.cancelled && event.recurrence
+      ? expandOccurrences(
+          { start: event.start, end: event.end ?? null, recurrence: event.recurrence, repeat_until: event.repeatUntil ?? null, skipped_dates: event.skippedDates ?? [] },
+          new Date(start.getTime() + 1),
+          null,
+        ).find((occurrence) => !occurrence.cancelled)
+      : undefined;
+  const nextDateText = nextOccurrence ? t("event.cancelled.next", { date: formatShortDate(new Date(nextOccurrence.start), t.locale) }) : null;
   const repeatUntilText = event.repeatUntil ? t("event.repeats.until", { date: formatShortDate(new Date(`${event.repeatUntil}T12:00:00`), t.locale) }) : null;
   const mapQuery = encodeURIComponent(event.address || event.location);
 
@@ -175,6 +187,7 @@ export function EventDetailScreen({
       <div className="flex flex-col gap-3.5 px-4 pt-4">
         <div className="flex flex-wrap gap-1">
           {past ? <Chip size="sm" tone="ink" label={t("event.past")} /> : null}
+          {event.cancelled ? <Chip size="sm" tone="warn" label={t("event.cancelled")} /> : null}
           <Chip size="sm" label={t.category(event.category)} />
           {event.newcomers ? <Chip size="sm" tone="maas" label={t("common.newcomers")} /> : null}
           {promo ? <Chip size="sm" tone="accent" icon="ticket" label={promoTagLabel(promo.label)} /> : null}
@@ -187,6 +200,13 @@ export function EventDetailScreen({
           </span>
         ) : null}
         <h1 className="t-title text-ink">{event.title}</h1>
+
+        {event.cancelled ? (
+          <WarningPanel tone="conflict" kicker={t("event.cancelled")} title={t("event.cancelled.title", { date: formatShortDate(start, t.locale) })}>
+            {t("event.cancelled.body")}
+            {nextDateText ? ` ${nextDateText}` : null}
+          </WarningPanel>
+        ) : null}
 
         <div className="flex flex-col gap-2">
           <div className="flex items-start gap-3">

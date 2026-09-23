@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { Card } from "@/components/ui/Card";
+import { Chip } from "@/components/ui/Chip";
+import { Icon, cx } from "@/components/ui/Icon";
 import { Toast } from "@/components/ui/Toast";
+import { amsterdamDateKey } from "@/lib/datetime";
+import { expandOccurrences } from "@/lib/occurrences";
 import { TopBar } from "@/app/_components/TopBar";
 import { useAuth } from "@/app/_lib/auth";
 import { signInHref } from "@/app/_lib/auth-paths";
@@ -12,6 +16,7 @@ import { deleteRequest, patchJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
 import { isDataUrl, removeMedia, uploadDataUrl } from "@/app/_lib/media";
 import { useToast } from "@/app/_lib/use-toast";
+import { formatShortDate, formatTime } from "@/app/e/_lib/format";
 import type { ViewEvent } from "@/app/e/_lib/view-data";
 import { ReviewStep } from "@/app/new/_components/ReviewStep";
 import { combineDateTime, combineEndDateTime, toDateInputValue, toTimeInputValue } from "@/app/new/_lib/datetime";
@@ -20,6 +25,9 @@ import type { FormState, ImagePayload } from "@/app/new/_lib/types";
 
 /** How long "Tap again to delete" stays armed. */
 const CONFIRM_MS = 4000;
+/** How far ahead the "Upcoming dates" list of a series looks, and how many dates it shows. */
+const UPCOMING_DATES_DAYS = 70;
+const MAX_UPCOMING_DATES = 8;
 /** Nothing was read by the AI here, so no field is amber. */
 const NO_MISSING_FIELDS = new Set<string>();
 
@@ -77,7 +85,7 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
   const router = useRouter();
   const t = useT();
   const { ready, user, isMemberOf } = useAuth();
-  const { toast, showSoon } = useToast();
+  const { toast, show, showSoon } = useToast();
   const [initial] = useState<FormState | null>(() => (event ? formFrom(event) : null));
   const [form, setForm] = useState<FormState | null>(initial);
   const [initialImage] = useState<string | null>(() => event?.image ?? null);
@@ -86,6 +94,9 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The dates of a series the organizer skipped; each Skip/Restore is saved at once, not with the form.
+  const [skipped, setSkipped] = useState<string[]>(() => event?.skippedDates ?? []);
+  const [dateBusy, setDateBusy] = useState<string | null>(null);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -94,6 +105,19 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
     },
     [],
   );
+
+  // The next dates of the series, from today: what "this week is cancelled" is done on.
+  const upcomingDates = useMemo(() => {
+    if (!event?.recurrence) return [];
+    const now = new Date();
+    return expandOccurrences(
+      { start: event.start, end: event.end ?? null, recurrence: event.recurrence, repeat_until: event.repeatUntil ?? null, skipped_dates: skipped },
+      now,
+      new Date(now.getTime() + UPCOMING_DATES_DAYS * 86_400_000),
+    )
+      .slice(0, MAX_UPCOMING_DATES)
+      .map((occurrence) => ({ key: amsterdamDateKey(occurrence.start), start: new Date(occurrence.start), cancelled: occurrence.cancelled }));
+  }, [event, skipped]);
 
   const detailUrl = `/e/${id}`;
   const editUrl = `${detailUrl}/edit`;
@@ -127,6 +151,22 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("eventEdit.error"));
       setSaving(false);
+    }
+  }
+
+  async function toggleDate(key: string, start: Date) {
+    const wasSkipped = skipped.includes(key);
+    const next = wasSkipped ? skipped.filter((date) => date !== key) : [...skipped, key].sort();
+    setDateBusy(key);
+    setError(null);
+    try {
+      await patchJson(`/api/events/${encodeURIComponent(id)}`, { skipped_dates: next });
+      setSkipped(next);
+      show(t(wasSkipped ? "toast.dateRestored" : "toast.dateSkipped", { date: formatShortDate(start, t.locale) }), "done");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("eventEdit.dates.error"));
+    } finally {
+      setDateBusy(null);
     }
   }
 
@@ -217,6 +257,29 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
           onChangeImage={handleChangeImage}
           onSoon={showSoon}
         />
+
+        {upcomingDates.length > 0 ? (
+          <section className="mt-6 flex flex-col gap-2">
+            <h2 className="t-heading text-ink">{t("eventEdit.dates.title")}</h2>
+            <p className="t-meta text-ink-muted">{t("eventEdit.dates.hint")}</p>
+            <Card tight>
+              {upcomingDates.map((date, index) => (
+                <div key={date.key} className={cx("flex items-center justify-between gap-3 py-1.5", index > 0 && "border-t border-line")}>
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="flex min-w-0 flex-col">
+                      <span className={cx("t-body-strong", date.cancelled ? "text-ink-muted line-through" : "text-ink")}>{formatShortDate(date.start, t.locale)}</span>
+                      <span className="t-meta text-ink-muted">{formatTime(date.start)}</span>
+                    </span>
+                    {date.cancelled ? <Chip size="sm" tone="warn" label={t("event.cancelled")} /> : null}
+                  </span>
+                  <Button size="sm" variant={date.cancelled ? "outline" : "secondary"} disabled={dateBusy !== null || deleting} onClick={() => toggleDate(date.key, date.start)}>
+                    {dateBusy === date.key ? "…" : date.cancelled ? t("eventEdit.dates.restore") : t("eventEdit.dates.skip")}
+                  </Button>
+                </div>
+              ))}
+            </Card>
+          </section>
+        ) : null}
 
         <Button
           variant={confirmDelete ? "outline" : "secondary"}

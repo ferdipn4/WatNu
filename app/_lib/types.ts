@@ -13,6 +13,10 @@ export type ApiEvent = {
   recurrence: "weekly" | "biweekly" | "monthly" | null;
   /** the last day of a series, `YYYY-MM-DD`, or null when open-ended */
   repeat_until: string | null;
+  /** the `YYYY-MM-DD` dates the organizer skipped on a series */
+  skipped_dates: string[];
+  /** set by the list routes on an occurrence the organizer skipped */
+  cancelled?: boolean;
   location_name: string | null;
   address: string | null;
   category: string | null;

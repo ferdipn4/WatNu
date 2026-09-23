@@ -10,6 +10,7 @@
 import { fetchEvent, fetchEvents, fetchOrganizer, fetchOrganizers, type EventsQuery } from "@/app/_lib/api-client";
 import type { ApiEvent } from "@/app/_lib/types";
 import { mapApiEvent, mapApiOrganizer, type ViewEvent, type ViewOrganizer } from "@/app/_lib/view-model";
+import { addDaysToDateKey, amsterdamInstant } from "@/lib/datetime";
 import { expandOccurrences } from "@/lib/occurrences";
 import {
   FIXTURE_EVENTS,
@@ -23,11 +24,18 @@ import { demoPosterMarker } from "./demo-posters";
 export type { ViewEvent, ViewOrganizer, ViewPromo } from "@/app/_lib/view-model";
 
 /**
- * A series row carries its first occurrence; the detail and edit screens show the next one from
- * now — or the last one, once the series is over.
+ * A series row carries its first occurrence; the detail shows the occurrence on `on` (the date a
+ * card was tapped on) when there is one, else the next one from now — or the last one, once the
+ * series is over.
  */
-function currentOccurrence(event: ApiEvent): ApiEvent {
+function currentOccurrence(event: ApiEvent, on?: string): ApiEvent {
   if (!event.recurrence) return event;
+  if (on && /^\d{4}-\d{2}-\d{2}$/.test(on)) {
+    const dayStart = amsterdamInstant(on);
+    const dayEnd = new Date(amsterdamInstant(addDaysToDateKey(on, 1)).getTime() - 1);
+    const [onThatDay] = expandOccurrences(event, dayStart, dayEnd);
+    if (onThatDay) return onThatDay;
+  }
   const now = new Date();
   const [next] = expandOccurrences(event, now, null);
   if (next) return next;
@@ -119,10 +127,10 @@ export async function getViewEvents(query: EventsQuery = {}): Promise<ViewEvent[
   }
 }
 
-export async function getViewEventById(id: string): Promise<ViewEvent | null> {
+export async function getViewEventById(id: string, on?: string): Promise<ViewEvent | null> {
   try {
     const event = await fetchEvent(id);
-    return event ? mapApiEvent(currentOccurrence(event)) : null;
+    return event ? mapApiEvent(currentOccurrence(event, on)) : null;
   } catch {
     const fixture = FIXTURE_EVENTS.find((e) => e.id === id);
     return fixture ? mapFixtureEvent(fixture) : null;

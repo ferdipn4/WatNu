@@ -33,6 +33,8 @@ export interface HomeEvent {
   newcomers: boolean;
   /** set when this row is one occurrence of a recurring series */
   repeats?: "weekly" | "biweekly" | "monthly";
+  /** an occurrence the organizer skipped */
+  cancelled?: boolean;
   /** a real uploaded photo url, when the organizer set one */
   image?: string;
 }
@@ -352,10 +354,11 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
                       price={event.price}
                       newcomers={event.newcomers}
                       repeats={event.repeats}
+                      cancelled={event.cancelled}
                       image={resolveEventImage(event.image, event.category, event.title)}
                       saved={savedIds.has(event.id)}
                       onSave={onSaveFor(event.id)}
-                      onClick={() => router.push(`/e/${event.id}`)}
+                      onClick={() => router.push(event.repeats ? `/e/${event.id}?on=${event.date}` : `/e/${event.id}`)}
                     />
                   </div>
                 ))}

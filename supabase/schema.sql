@@ -37,6 +37,8 @@ alter table events add column if not exists "end" timestamptz;
 -- expands it into occurrences (lib/occurrences.ts). `repeat_until` is the last day, null = open-ended.
 alter table events add column if not exists recurrence text check (recurrence in ('weekly', 'biweekly', 'monthly'));
 alter table events add column if not exists repeat_until date;
+-- Dates (YYYY-MM-DD) an organizer skipped ("this week is cancelled"); those occurrences come back flagged `cancelled`.
+alter table events add column if not exists skipped_dates date[] not null default '{}';
 
 create index if not exists events_start_idx on events (start);
 create index if not exists events_organizer_slug_idx on events (organizer_slug);

@@ -41,7 +41,7 @@ export const ORGANIZER_COLUMNS =
   "id, slug, name, type, category, description, instagram_handle, address, logo_file, stats_public, created_at";
 
 export const EVENT_COLUMNS =
-  "id, title, organizer_slug, start, end, recurrence, repeat_until, location_name, address, category, price_eur, description, source_url, newcomer_friendly, image_file, created_at";
+  "id, title, organizer_slug, start, end, recurrence, repeat_until, skipped_dates, location_name, address, category, price_eur, description, source_url, newcomer_friendly, image_file, created_at";
 
 export const EVENT_COLUMNS_WITH_ORGANIZER = `${EVENT_COLUMNS}, organizers ( name, type )`;
 

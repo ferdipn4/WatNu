@@ -18,7 +18,7 @@ import { useT } from "@/app/_lib/i18n";
 import { getDisplayName, getFollowedOrganizers, getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
 import type { ApiEvent } from "@/app/_lib/types";
 import { useToast } from "@/app/_lib/use-toast";
-import { mapApiEvent, type ViewEvent, type ViewOrganizer } from "@/app/_lib/view-model";
+import { eventHref, mapApiEvent, type ViewEvent, type ViewOrganizer } from "@/app/_lib/view-model";
 import { dayHeaderLabel, dayKey, formatTime } from "@/app/e/_lib/format";
 
 type DayGroup = { date: Date; events: ViewEvent[] };
@@ -148,9 +148,10 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
         image={resolveEventImage(event.image, event.category, event.title)}
         newcomers={event.newcomers}
         repeats={event.recurrence}
+        cancelled={event.cancelled}
         saved={savedIds.includes(event.id)}
         onSave={saveOff ? null : saveSoon ? () => showSoon() : (next) => handleToggleSave(event.id, next)}
-        onClick={() => router.push(`/e/${event.id}`)}
+        onClick={() => router.push(eventHref(event))}
       />
     );
   }

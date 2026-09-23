@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { eventHref } from "@/app/_lib/view-model";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
@@ -239,10 +240,11 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
                   price={event.price}
                   newcomers={event.newcomers}
                   repeats={event.recurrence}
+                  cancelled={event.cancelled}
                   image={resolveEventImage(event.image, event.category, event.title)}
                   saved={savedIds.has(event.id)}
                   onSave={saveOff ? null : saveSoon ? () => showSoon() : (saved) => handleSave(event.id, saved)}
-                  onClick={() => router.push(`/e/${event.id}`)}
+                  onClick={() => router.push(eventHref(event))}
                 />
               );
             })}

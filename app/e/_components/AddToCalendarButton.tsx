@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { amsterdamInstant, amsterdamParts } from "@/lib/datetime";
 import { useT } from "@/app/_lib/i18n";
 import type { ViewEvent } from "../_lib/view-data";
 
@@ -33,7 +34,14 @@ function rruleFor(event: ViewEvent): string | null {
   return `RRULE:${RRULE_FREQ[event.recurrence]}${until}`;
 }
 
-/** Downloads an .ics with title, times, location, the repeat rule and the event URL in the notes — pure client-side, no backend involved. */
+/** The dates the organizer skipped, as EXDATE lines at the occurrence's time, so the calendar drops them too. */
+function exdatesFor(event: ViewEvent): string[] {
+  if (!event.recurrence || !event.skippedDates?.length) return [];
+  const { hour, minute } = amsterdamParts(event.start);
+  return event.skippedDates.map((key) => `EXDATE:${toIcsUtc(amsterdamInstant(key, hour, minute))}`);
+}
+
+/** Downloads an .ics with title, times, location, the repeat rule (minus skipped dates) and the event URL in the notes — pure client-side, no backend involved. */
 export function AddToCalendarButton({ event }: { event: ViewEvent }) {
   const t = useT();
 
@@ -57,6 +65,7 @@ export function AddToCalendarButton({ event }: { event: ViewEvent }) {
       `DTSTART:${toIcsUtc(startDate)}`,
       `DTEND:${toIcsUtc(endDate)}`,
       ...(rrule ? [rrule] : []),
+      ...(rrule ? exdatesFor(event) : []),
       `SUMMARY:${escapeIcsText(event.title)}`,
       ...(event.location ? [`LOCATION:${escapeIcsText(event.location)}`] : []),
       `DESCRIPTION:${escapeIcsText(descriptionLines.join("\n"))}`,

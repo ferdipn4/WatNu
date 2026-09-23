@@ -20,6 +20,12 @@ const optionalDateKey = z
     message: "Expected a YYYY-MM-DD date or null.",
   });
 
+/** The `YYYY-MM-DD` dates of a series the organizer skipped, deduplicated and sorted; PATCH sends the whole list. */
+const skippedDatesSchema = z
+  .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD dates."))
+  .max(100)
+  .transform((dates) => Array.from(new Set(dates)).sort());
+
 export const eventCategorySchema = z.enum(EVENT_CATEGORIES);
 export type ApiEventCategory = z.infer<typeof eventCategorySchema>;
 
@@ -209,6 +215,7 @@ export const updateEventSchema = z
     end: optionalIsoDateTime.optional(),
     recurrence: optionalRecurrence.optional(),
     repeat_until: optionalDateKey.optional(),
+    skipped_dates: skippedDatesSchema.optional(),
     location_name: optionalText.optional(),
     address: optionalText.optional(),
     category: eventCategorySchema.optional(),

@@ -12,9 +12,17 @@ async function getOrigin(): Promise<string> {
   return host ? `${protocol}://${host}` : "http://localhost:3000";
 }
 
-export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EventDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  /** `on=YYYY-MM-DD`: which occurrence of a series to show (the card that was tapped) */
+  searchParams: Promise<{ on?: string | string[] }>;
+}) {
   const { id } = await params;
-  const event = await getViewEventById(id);
+  const { on } = await searchParams;
+  const event = await getViewEventById(id, typeof on === "string" ? on : undefined);
 
   if (!event) {
     const t = await getServerT();

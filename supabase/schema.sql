@@ -284,6 +284,172 @@ create policy "members and admins resolve reports"
   to authenticated
   using (is_admin() or is_organizer_member((select e.organizer_slug from events e where e.id = event_id)));
 
+-- ---------------------------------------------------------------------------------------------
+-- Push reminders. A phone that turned reminders on stores its Web Push subscription here, keyed by
+-- a token only that phone knows (students have no account), together with the event ids it saved.
+-- The sender (GET /api/push/run, a Vercel cron) reads everything through definer functions guarded
+-- by the cron secret in app_config. Nothing here is readable by anon or authenticated directly.
+create table if not exists app_config (
+  key text primary key,
+  value text not null
+);
+
+alter table app_config enable row level security;
+
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  token uuid not null unique,
+  endpoint text not null unique,
+  p256dh text not null,
+  auth text not null,
+  event_ids uuid[] not null default '{}',
+  locale text not null default 'en',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table push_subscriptions enable row level security;
+
+create table if not exists push_sent (
+  subscription_id uuid not null references push_subscriptions (id) on delete cascade,
+  event_id uuid not null,
+  occurrence_date date not null,
+  kind text not null check (kind in ('reminder', 'cancelled')),
+  sent_at timestamptz not null default now(),
+  primary key (subscription_id, event_id, occurrence_date, kind)
+);
+
+alter table push_sent enable row level security;
+
+-- The phone's side: subscribe (or re-subscribe), update the saved ids, unsubscribe — by token.
+create or replace function push_subscribe(p_token uuid, p_endpoint text, p_p256dh text, p_auth text, p_event_ids uuid[], p_locale text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- A phone that re-subscribed has a new endpoint: its old row goes first.
+  delete from push_subscriptions where token = p_token and endpoint <> p_endpoint;
+  insert into push_subscriptions (token, endpoint, p256dh, auth, event_ids, locale)
+  values (p_token, p_endpoint, p_p256dh, p_auth, coalesce(p_event_ids, '{}'), coalesce(p_locale, 'en'))
+  on conflict (endpoint) do update
+    set token = excluded.token,
+        p256dh = excluded.p256dh,
+        auth = excluded.auth,
+        event_ids = excluded.event_ids,
+        locale = excluded.locale,
+        updated_at = now();
+end;
+$$;
+
+create or replace function push_update(p_token uuid, p_event_ids uuid[], p_locale text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update push_subscriptions
+    set event_ids = coalesce(p_event_ids, '{}'), locale = coalesce(p_locale, locale), updated_at = now()
+    where token = p_token;
+  return found;
+end;
+$$;
+
+create or replace function push_unsubscribe(p_token uuid)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from push_subscriptions where token = p_token;
+$$;
+
+grant execute on function push_subscribe(uuid, text, text, text, uuid[], text) to anon, authenticated;
+grant execute on function push_update(uuid, uuid[], text) to anon, authenticated;
+grant execute on function push_unsubscribe(uuid) to anon, authenticated;
+
+-- The sender's side, guarded by app_config.push_cron_secret (the same value as CRON_SECRET on Vercel).
+create or replace function push_sender_allowed(p_secret text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from app_config where key = 'push_cron_secret' and value = p_secret and length(p_secret) >= 16);
+$$;
+
+create or replace function push_list(p_secret text)
+returns setof push_subscriptions
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not push_sender_allowed(p_secret) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return query select * from push_subscriptions where cardinality(event_ids) > 0;
+end;
+$$;
+
+create or replace function push_sent_list(p_secret text, p_from date)
+returns setof push_sent
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not push_sender_allowed(p_secret) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return query select * from push_sent where occurrence_date >= p_from;
+end;
+$$;
+
+create or replace function push_mark_sent(p_secret text, p_subscription_id uuid, p_event_id uuid, p_occurrence_date date, p_kind text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not push_sender_allowed(p_secret) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  insert into push_sent (subscription_id, event_id, occurrence_date, kind)
+  values (p_subscription_id, p_event_id, p_occurrence_date, p_kind)
+  on conflict do nothing;
+end;
+$$;
+
+create or replace function push_drop(p_secret text, p_subscription_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not push_sender_allowed(p_secret) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  delete from push_subscriptions where id = p_subscription_id;
+end;
+$$;
+
+grant execute on function push_list(text) to anon, authenticated;
+grant execute on function push_sent_list(text, date) to anon, authenticated;
+grant execute on function push_mark_sent(text, uuid, uuid, date, text) to anon, authenticated;
+grant execute on function push_drop(text, uuid) to anon, authenticated;
+
+-- Set the secret once (the same value goes to Vercel as CRON_SECRET; 32+ random characters):
+--   insert into app_config (key, value) values ('push_cron_secret', '<secret>')
+--   on conflict (key) do update set value = excluded.value;
+
 -- Organizer stats: views, saves and follows, counted per day by the app (POST /api/metrics →
 -- record_metric). Nobody touches the table directly; the two definer functions below do. Only the
 -- organizer's members read the numbers (organizer_stats), unless the organizer sets stats_public.

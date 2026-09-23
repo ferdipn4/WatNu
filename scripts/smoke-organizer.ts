@@ -222,6 +222,28 @@ async function main(): Promise<void> {
     record("remove own media", !removed.error && (removed.data?.length ?? 0) === 1, removed.error?.message ?? `${removed.data?.length ?? 0} removed`);
   }
 
+  // 9. Push reminders: a phone subscribes with its token, updates its saved ids, the sender runs, the phone unsubscribes.
+  const pushToken = crypto.randomUUID();
+  const subscribed = await api(null, "POST", "/api/push/subscriptions", {
+    token: pushToken,
+    subscription: { endpoint: `https://updates.push.services.mozilla.com/wpush/v2/smoke-${pushToken}`, keys: { p256dh: "smoke-p256dh", auth: "smoke-auth" } },
+    event_ids: [],
+    locale: "en",
+  });
+  record("phone subscribes to reminders", subscribed.status === 204, `status ${subscribed.status} ${errorOf(subscribed.json)}`);
+  const pushUpdated = await api(null, "PATCH", "/api/push/subscriptions", { token: pushToken, event_ids: [] });
+  record("phone updates its saved ids", pushUpdated.status === 204, `status ${pushUpdated.status} ${errorOf(pushUpdated.json)}`);
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const run = await fetch(`${BASE_URL}/api/push/run`, { headers: { Authorization: `Bearer ${cronSecret}` } });
+    const summary = (await run.json().catch(() => null)) as { subscriptions?: number } | null;
+    record("the sender runs", run.status === 200 && typeof summary?.subscriptions === "number", `status ${run.status} ${JSON.stringify(summary)}`);
+    const unauthorized = await fetch(`${BASE_URL}/api/push/run`);
+    record("the sender refuses without the secret", unauthorized.status === 401, `status ${unauthorized.status}`);
+  }
+  const unsubscribed = await fetch(`${BASE_URL}/api/push/subscriptions?token=${pushToken}`, { method: "DELETE" });
+  record("phone unsubscribes", unsubscribed.status === 204, `status ${unsubscribed.status}`);
+
   // Local scope only: the default (global) sign-out would revoke every session of this user, including a browser's.
   await supabase.auth.signOut({ scope: "local" });
 

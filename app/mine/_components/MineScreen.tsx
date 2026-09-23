@@ -15,6 +15,7 @@ import { ScreenHeader } from "@/app/_components/ScreenHeader";
 import { TabScreen } from "@/app/_components/TabScreen";
 import { getJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
+import { enablePush, getPushState, type PushState } from "@/app/_lib/push";
 import { getFollowedOrganizers, getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
 import type { ApiEvent } from "@/app/_lib/types";
 import { useToast } from "@/app/_lib/use-toast";
@@ -49,10 +50,36 @@ function groupByDay(events: ViewEvent[]): DayGroup[] {
 export function MineScreen({ events, organizers }: { events: ViewEvent[]; organizers: ViewOrganizer[] }) {
   const router = useRouter();
   const t = useT();
-  const { toast, showSoon } = useToast();
+  const { toast, show, showSoon } = useToast();
   const [followedSlugs, setFollowedSlugs] = useState<string[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [pastSaved, setPastSaved] = useState<ViewEvent[]>([]);
+  // Reminders on this phone: the card offers to turn them on while they are off.
+  const [push, setPush] = useState<PushState | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getPushState()
+      .then((state) => {
+        if (active) setPush(state);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleEnablePush() {
+    try {
+      const state = await enablePush(getSavedEventIds(), t.locale);
+      setPush(state);
+      if (state === "on") show(t("push.on"), "done");
+      else if (state === "denied") show(t("push.denied"), "info");
+      else if (state === "unsupported") show(t("push.unsupported"), "info");
+    } catch {
+      show(t("push.error"), "info");
+    }
+  }
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
@@ -153,6 +180,23 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
   return (
     <TabScreen active="mine">
       <ScreenHeader title={t("mine.title")} meta={t("mine.meta")} />
+
+      {push === "off" && upcoming.length > 0 ? (
+        <div className="mt-1 px-4">
+          <Card tone="sunken" tight className="flex! items-center gap-3">
+            <span aria-hidden="true" className="grid h-11 w-11 flex-none place-items-center rounded-full bg-accent-soft text-accent">
+              <Icon name="bell" size={22} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="t-body-strong block text-ink">{t("push.card.title")}</span>
+              <span className="t-meta block text-ink-muted">{t("push.card.body")}</span>
+            </span>
+            <Button size="sm" onClick={handleEnablePush}>
+              {t("push.card.action")}
+            </Button>
+          </Card>
+        </div>
+      ) : null}
 
       {showFollowing ? (
         <div className="mt-1 px-4">

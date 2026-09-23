@@ -17,6 +17,7 @@ import { useAuth } from "@/app/_lib/auth";
 import { signInHref } from "@/app/_lib/auth-paths";
 import { LOCALES, useLocale, useT, type Locale } from "@/app/_lib/i18n";
 import { clearSavedAndFollowed, getDisplayName, getFollowedOrganizers, getSavedEventIds, setDisplayName } from "@/app/_lib/store";
+import { disablePush, enablePush, getPushState, type PushState } from "@/app/_lib/push";
 import { getThemeMode, setThemeMode, type ThemeMode } from "@/app/_lib/theme";
 import { useToast } from "@/app/_lib/use-toast";
 
@@ -64,7 +65,32 @@ export function ProfileScreen() {
   const [savedCount, setSavedCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [push, setPush] = useState<PushState | null>(null);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getPushState()
+      .then((state) => {
+        if (active) setPush(state);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handlePush(on: boolean) {
+    try {
+      const state = on ? await enablePush(getSavedEventIds(), locale) : await disablePush();
+      setPush(state);
+      if (state === "on") show(t("push.on"), "done");
+      else if (state === "denied") show(t("push.denied"), "info");
+      else if (state === "off" && !on) show(t("push.off"));
+    } catch {
+      show(t("push.error"), "info");
+    }
+  }
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
@@ -181,6 +207,23 @@ export function ProfileScreen() {
           </div>
           <p className="t-meta text-ink-muted">{t("you.language.hint")}</p>
         </section>
+
+        {push !== null ? (
+          <section className="flex flex-col gap-2">
+            <h2 className="t-heading mt-1 text-ink">{t("you.push")}</h2>
+            {push === "unsupported" ? (
+              <p className="t-meta text-ink-muted">{t("push.unsupported")}</p>
+            ) : (
+              <Field
+                kind="switch"
+                label={t("you.push.label")}
+                checked={push === "on"}
+                onChange={(checked: boolean) => void handlePush(checked)}
+                hint={push === "denied" ? t("push.denied") : push === "on" ? t("you.push.onHint") : t("you.push.offHint")}
+              />
+            )}
+          </section>
+        ) : null}
 
         <section className="flex flex-col gap-3">
           <h2 className="t-heading mt-1 text-ink">{t("you.data")}</h2>

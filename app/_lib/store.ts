@@ -6,6 +6,7 @@
  * the organizer's stats (app/_lib/metrics.ts), anonymously.
  */
 import { recordMetric } from "./metrics";
+import { syncPushSavedEvents } from "./push";
 
 const FOLLOWED_ORGANIZERS_KEY = "watnu:followed-organizers";
 const SAVED_EVENTS_KEY = "watnu:saved-events";
@@ -70,6 +71,8 @@ export function isEventSaved(id: string): boolean {
 export function toggleSavedEvent(id: string): boolean {
   const saved = toggleInList(SAVED_EVENTS_KEY, id);
   recordMetric(saved ? "event_save" : "event_unsave", id);
+  // The reminders on this phone follow what it saved (a no-op until reminders are on).
+  syncPushSavedEvents(readList(SAVED_EVENTS_KEY));
   return saved;
 }
 
@@ -97,4 +100,5 @@ export function setDisplayName(name: string): void {
 export function clearSavedAndFollowed(): void {
   writeList(SAVED_EVENTS_KEY, []);
   writeList(FOLLOWED_ORGANIZERS_KEY, []);
+  syncPushSavedEvents([]);
 }

@@ -8,6 +8,7 @@ import {
   MapPin,
   Calendar,
   Repeat,
+  Bell,
   ChevronRight,
   ChevronDown,
   ArrowLeft,
@@ -50,6 +51,7 @@ export type IconName =
   | "pin"
   | "calendar"
   | "repeat"
+  | "bell"
   | "chevron-right"
   | "chevron-down"
   | "arrow-left"
@@ -96,6 +98,7 @@ const GLYPHS: Record<IconName, LucideIcon> = {
   pin: MapPin,
   calendar: Calendar,
   repeat: Repeat,
+  bell: Bell,
   "chevron-right": ChevronRight,
   "chevron-down": ChevronDown,
   "arrow-left": ArrowLeft,

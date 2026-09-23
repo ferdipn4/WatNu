@@ -7,8 +7,11 @@
  * - GET /api/events* and /api/organizers* without an Authorization header: network first, last copy offline
  * - poster and logo images from Supabase Storage: cache first, trimmed to the newest 120
  * Bump VERSION to drop every old cache on the next activation.
+ *
+ * It also shows the push reminders (app/api/push/run sends them): the payload carries title, body,
+ * the url to open and a tag, so a reminder and a cancellation for the same date never stack up.
  */
-const VERSION = "watnu-v1";
+const VERSION = "watnu-v2";
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const DATA_CACHE = `${VERSION}-data`;
@@ -66,6 +69,38 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.includes("/storage/v1/object/public/")) {
     event.respondWith(cacheFirst(request, IMAGE_CACHE, MAX_IMAGES));
   }
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+  const options = {
+    body: data.body || "",
+    icon: "/icon",
+    badge: "/icon",
+    tag: data.tag || undefined,
+    data: { url: data.url || "/" },
+  };
+  event.waitUntil(self.registration.showNotification(data.title || "WatNu", options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const open = clients.find((client) => "focus" in client);
+      if (open) {
+        if ("navigate" in open) open.navigate(url);
+        return open.focus();
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
 });
 
 async function networkFirst(request, cacheName, fallbackUrl) {

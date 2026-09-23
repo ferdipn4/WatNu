@@ -373,6 +373,29 @@ export const reportSchema = z.object({
   message: optionalText.transform((value) => (value ? value.slice(0, 500) : null)),
 });
 
+/** A phone's saved event ids for the reminders — at most this many travel with a subscription. */
+const MAX_PUSH_EVENT_IDS = 200;
+const pushEventIds = z.array(z.string().uuid()).max(MAX_PUSH_EVENT_IDS).transform((ids) => Array.from(new Set(ids)));
+const pushLocale = z.enum(["en", "nl"]).optional();
+
+/** Body accepted by POST /api/push/subscriptions: the Web Push subscription plus what to remind about. */
+export const pushSubscribeSchema = z.object({
+  token: z.string().uuid(),
+  subscription: z.object({
+    endpoint: z.string().url().max(2000),
+    keys: z.object({ p256dh: z.string().min(1).max(300), auth: z.string().min(1).max(100) }),
+  }),
+  event_ids: pushEventIds.default([]),
+  locale: pushLocale,
+});
+
+/** Body accepted by PATCH /api/push/subscriptions: the saved ids changed. */
+export const pushUpdateSchema = z.object({
+  token: z.string().uuid(),
+  event_ids: pushEventIds,
+  locale: pushLocale,
+});
+
 /** Shape returned to clients for validation failures. */
 export function validationError(error: z.ZodError) {
   const flat = error.flatten();

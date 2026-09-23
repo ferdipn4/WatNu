@@ -22,6 +22,9 @@ Open [http://localhost:3000](http://localhost:3000).
 | `ANTHROPIC_API_KEY` | Preferred AI provider |
 | `XAI_API_KEY` | Fallback provider (OpenAI SDK against `https://api.x.ai/v1`) |
 | `NEXT_PUBLIC_SITE_URL` | Absolute origin for link previews; optional on Vercel, where the production domain is used |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | The Web Push key pair (`npx web-push generate-vapid-keys`) |
+| `VAPID_SUBJECT` | A `mailto:` or `https:` contact for push services |
+| `CRON_SECRET` | What Vercel's cron sends to `/api/push/run`; the same value goes into `app_config.push_cron_secret` |
 
 `lib/ai.ts` uses Anthropic when `ANTHROPIC_API_KEY` is set and otherwise falls back
 to xAI. If neither key is present it throws.
@@ -65,6 +68,26 @@ Posters and logos live in the public Storage bucket `media` (created by
 image types only). The browser uploads them directly with the organizer's
 session (`app/_lib/media.ts`) and the row stores the public URL — `image_file`
 and `logo_file` must be http(s) URLs, the API rejects `data:` URLs.
+
+### Push reminders
+
+A phone that turns reminders on (the card on My WatNu, or the switch on the
+profile tab) stores its Web Push subscription plus its saved event ids, keyed
+by a token only that phone knows (`POST` / `PATCH` / `DELETE
+/api/push/subscriptions`, through definer functions in `supabase/schema.sql`;
+the tables themselves are not readable). `GET /api/push/run` sends what is
+due — a reminder on the day of a saved event, a cancellation for a skipped
+date within two weeks — and remembers it in `push_sent`. Vercel's cron
+(`vercel.json`, daily at 07:00 UTC) calls it with `Authorization: Bearer
+$CRON_SECRET`; the same secret must be stored once:
+
+```sql
+insert into app_config (key, value) values ('push_cron_secret', '<CRON_SECRET>')
+on conflict (key) do update set value = excluded.value;
+```
+
+Push needs the installed app: the service worker only registers in production
+builds, and iPhones only deliver push to apps on the home screen.
 
 ## API
 

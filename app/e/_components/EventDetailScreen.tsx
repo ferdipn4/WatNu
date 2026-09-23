@@ -24,7 +24,7 @@ import type { ViewEvent, ViewOrganizer } from "../_lib/view-data";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import { PromoSheet } from "./PromoSheet";
 
-/** The kicker above a recurring event's title, the same marker the cards carry. */
+/** "Every week" etc.: the badge on the hero image, the same marker the cards carry (a kicker above the title when there is no image). */
 const REPEAT_KICKER_KEYS = { weekly: "repeat.weekly", biweekly: "repeat.biweekly", monthly: "repeat.monthly" } as const;
 
 /** "10% off with WatNu" → "10% off" — the short tag for the tags row; the promo card keeps the full label. */
@@ -144,6 +144,7 @@ export function EventDetailScreen({
     else hero = <EventPoster category={event.category} title={event.title} />;
   }
   const onImage = hero !== null;
+  const repeatLabel = event.recurrence ? t(REPEAT_KICKER_KEYS[event.recurrence]) : null;
 
   const backButton = <Button iconOnly round onImage={onImage} variant="secondary" icon="arrow-left" aria-label={t("common.back")} onClick={goBack} />;
   const shareButton = shareOff ? null : (
@@ -179,6 +180,12 @@ export function EventDetailScreen({
             {backButton}
             {rightButtons}
           </div>
+          {repeatLabel ? (
+            <span className="absolute right-3 bottom-3 inline-flex h-8 items-center gap-1.5 rounded-full bg-ink/80 pr-3 pl-2.5 text-[13px] font-semibold tracking-[0.01em] text-surface backdrop-blur-sm">
+              <Icon name="repeat" size={16} />
+              {repeatLabel}
+            </span>
+          ) : null}
         </div>
       ) : (
         <TopBar onBack={goBack} right={rightButtons} />
@@ -193,10 +200,10 @@ export function EventDetailScreen({
           {promo ? <Chip size="sm" tone="accent" icon="ticket" label={promoTagLabel(promo.label)} /> : null}
         </div>
 
-        {event.recurrence ? (
+        {repeatLabel && !hero ? (
           <span className="-mb-2 flex items-center gap-1 text-xs font-semibold leading-4 tracking-[0.01em] text-accent">
             <Icon name="repeat" size={12} />
-            {t(REPEAT_KICKER_KEYS[event.recurrence])}
+            {repeatLabel}
           </span>
         ) : null}
         <h1 className="t-title text-ink">{event.title}</h1>

@@ -9,7 +9,7 @@ import { Icon, cx } from "./Icon";
 /** The six event categories. Chips filter by them; every event has exactly one. */
 export type Category = "Sport" | "Party" | "Café & Food" | "Culture" | "Study & Career" | "Social";
 
-/** The kicker above a recurring event's title ("Every week"), so a regular meetup reads differently from a one-off at a glance. */
+/** "Every week" / "Every 2 weeks" / "Every month": the badge on a recurring event's poster (top right), so a regular meetup reads differently from a one-off at a glance. */
 const REPEAT_KICKER_KEYS = { weekly: "repeat.weekly", biweekly: "repeat.biweekly", monthly: "repeat.monthly" } as const;
 
 export interface EventCardProps {
@@ -24,7 +24,7 @@ export interface EventCardProps {
   price?: number | null;
   /** the organizer's image (their uploaded poster by default): a url, or an element in previews. With it the card is vertical: image on top at 16:9, then the same row. Without it the card stays compact. */
   image?: string | ReactNode;
-  /** marks one occurrence of a recurring series: an accent "Every week" / "Every 2 weeks" / "Every month" kicker above the title */
+  /** marks one occurrence of a recurring series: an "Every week" / "Every 2 weeks" / "Every month" badge on the poster (or, on a compact card without one, a kicker above the title) */
   repeats?: keyof typeof REPEAT_KICKER_KEYS;
   /** shows the "Newcomers welcome" tag */
   newcomers?: boolean;
@@ -61,9 +61,17 @@ export function EventCard({
   const meta = location === organizer ? location : [location, organizer].filter(Boolean).join(" · ");
   const showSave = onSave !== null;
 
+  const repeatLabel = repeats ? t(REPEAT_KICKER_KEYS[repeats]) : null;
+
   const imageEl = image ? (
-    <div className="aspect-video w-full overflow-hidden border-b border-line bg-surface-sunken [&>*]:block [&>*]:h-full [&>*]:w-full [&>*]:object-cover">
-      {typeof image === "string" ? <img src={image} alt="" /> : image}
+    <div className="relative aspect-video w-full overflow-hidden border-b border-line bg-surface-sunken">
+      <div className="h-full w-full [&>*]:block [&>*]:h-full [&>*]:w-full [&>*]:object-cover">{typeof image === "string" ? <img src={image} alt="" /> : image}</div>
+      {repeatLabel ? (
+        <span className="absolute top-2 right-2 inline-flex h-7 items-center gap-1 rounded-full bg-ink/80 pr-2.5 pl-2 text-xs font-semibold tracking-[0.01em] text-surface backdrop-blur-sm">
+          <Icon name="repeat" size={14} />
+          {repeatLabel}
+        </span>
+      ) : null}
     </div>
   ) : null;
 
@@ -81,10 +89,10 @@ export function EventCard({
           {endTime ? <span className="t-caption tabular-nums text-ink-muted">–{endTime}</span> : null}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          {repeats ? (
+          {repeatLabel && !image ? (
             <span className="flex items-center gap-1 text-xs font-semibold leading-4 tracking-[0.01em] text-accent">
               <Icon name="repeat" size={12} />
-              {t(REPEAT_KICKER_KEYS[repeats])}
+              {repeatLabel}
             </span>
           ) : null}
           <div className="line-clamp-2 text-[15px] font-semibold leading-5 text-ink">{title}</div>

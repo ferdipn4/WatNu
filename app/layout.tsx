@@ -11,10 +11,18 @@ import './globals.css';
 const display = Bricolage_Grotesque({ subsets: ['latin'], axes: ['opsz'], variable: '--font-bricolage', display: 'swap' });
 const sans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans', display: 'swap' });
 
+/** Absolute URLs for link previews: the deployed domain on Vercel, NEXT_PUBLIC_SITE_URL when set, localhost in dev. */
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'http://localhost:3000');
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: 'WatNu',
   applicationName: 'WatNu',
   description: "What's on in Maastricht this week.",
+  // Link previews (WhatsApp, Instagram, iMessage): app/opengraph-image.tsx draws the default card; events and organizers draw their own.
+  openGraph: { siteName: 'WatNu', locale: 'en', type: 'website' },
+  twitter: { card: 'summary_large_image' },
   // app/manifest.ts, app/icon.tsx and app/apple-icon.tsx make it installable from the browser's "Add to Home Screen".
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'WatNu', statusBarStyle: 'default' },

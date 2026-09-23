@@ -1,9 +1,37 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { Button } from "@/components/ui/Button";
 import { getServerT } from "@/app/_lib/i18n/server";
+import { ogWhen } from "@/app/_lib/og";
 import { getViewEventById, getViewOrganizerBySlug } from "@/app/e/_lib/view-data";
 import { EventDetailScreen } from "../_components/EventDetailScreen";
+
+type EventPageProps = {
+  params: Promise<{ id: string }>;
+  /** `on=YYYY-MM-DD`: which occurrence of a series to show (the card that was tapped) */
+  searchParams: Promise<{ on?: string | string[] }>;
+};
+
+/** What a shared link says: the title, when and where, who — the image comes from opengraph-image.tsx next to this file. */
+export async function generateMetadata({ params, searchParams }: EventPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const { on } = await searchParams;
+  const event = await getViewEventById(id, typeof on === "string" ? on : undefined);
+  if (!event) return { title: "No event here · WatNu" };
+
+  const when = ogWhen(event.start, event.end);
+  const where = [event.location, event.organizerName].filter((part, index, all) => part && all.indexOf(part) === index).join(" · ");
+  const summary = event.description.replace(/\s+/g, " ").trim();
+  const description = `${when} · ${where}${summary ? ` — ${summary}` : ""}`.slice(0, 200);
+  const title = `${event.title} · ${when}`;
+  return {
+    title: `${event.title} · WatNu`,
+    description,
+    openGraph: { title, description, type: "article" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 async function getOrigin(): Promise<string> {
   const requestHeaders = await headers();
@@ -12,14 +40,7 @@ async function getOrigin(): Promise<string> {
   return host ? `${protocol}://${host}` : "http://localhost:3000";
 }
 
-export default async function EventDetailPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  /** `on=YYYY-MM-DD`: which occurrence of a series to show (the card that was tapped) */
-  searchParams: Promise<{ on?: string | string[] }>;
-}) {
+export default async function EventDetailPage({ params, searchParams }: EventPageProps) {
   const { id } = await params;
   const { on } = await searchParams;
   const event = await getViewEventById(id, typeof on === "string" ? on : undefined);

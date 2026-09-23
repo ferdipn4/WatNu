@@ -41,6 +41,8 @@ export type ViewEvent = {
   newcomers: boolean;
   /** an image url, or a `demoPosterMarker(...)` value for fixture events — see demo-posters.tsx */
   image?: string;
+  /** the registration link (`source_url`), when the organizer set one */
+  signupUrl?: string;
   organizerSlug: string | null;
   organizerName: string;
   organizerType: OrganizerType;
@@ -88,6 +90,7 @@ function mapApiEvent(event: ApiEvent, organizersBySlug: Map<string, ApiOrganizer
     price: Number(event.price_eur ?? 0),
     newcomers: event.newcomer_friendly,
     image: event.image_file ?? undefined,
+    signupUrl: event.source_url ?? undefined,
     organizerSlug: event.organizer_slug,
     organizerName: event.organizer_name ?? organizer?.name ?? "Organizer",
     organizerType: asOrgType(organizer?.type),

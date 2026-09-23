@@ -5,7 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import type { Category } from "@/components/ui/EventCard";
 import type { OrganizerType } from "@/components/ui/OrgLogo";
 import { EVENT_CATEGORIES } from "@/lib/types";
-import { getJson } from "./http";
+import { HttpStatusError, getJson } from "./http";
 import { AUTH_AVAILABLE, getBrowserSupabase } from "./supabase-browser";
 
 /** An organizer the signed-in account manages (a row in organizer_members). */
@@ -23,7 +23,7 @@ export type AuthUser = { id: string; email: string | null };
 export type SignInResult = "ok" | "invalid" | "unavailable" | "error";
 
 type AuthValue = {
-  /** false until the stored session has been read after mount; gate organizer-only UI on it */
+  /** false until the stored session and, when signed in, the memberships have been read; gate organizer-only UI on it */
   ready: boolean;
   /** whether sign-in exists on this build (the public Supabase env is set) */
   available: boolean;
@@ -57,7 +57,7 @@ const AuthContext = createContext<AuthValue | null>(null);
 /** Wraps the app in app/layout.tsx. Organizer accounts only; students stay without one. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [ready, setReady] = useState(!AUTH_AVAILABLE);
+  const [sessionRead, setSessionRead] = useState(!AUTH_AVAILABLE);
   // Memberships are keyed by user so a sign-out never shows the previous account's organizers.
   const [memberships, setMemberships] = useState<{ userId: string; organizers: ManagedOrganizer[] } | null>(null);
 
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       setSession(data.session);
-      setReady(true);
+      setSessionRead(true);
     });
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, next) => {
       if (active) setSession(next);
@@ -88,8 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((me) => {
         if (active) setMemberships({ userId, organizers: me.organizers.map(toManaged) });
       })
-      .catch(() => {
-        if (active) setMemberships({ userId, organizers: [] });
+      .catch((error: unknown) => {
+        if (!active) return;
+        // A 401 means the stored session was revoked elsewhere (a sign-out on another device, an
+        // expired refresh token): drop it locally so the UI shows signed out instead of a half state.
+        if (error instanceof HttpStatusError && error.status === 401) {
+          void getBrowserSupabase()?.auth.signOut({ scope: "local" });
+          return;
+        }
+        setMemberships({ userId, organizers: [] });
       });
     return () => {
       active = false;
@@ -105,14 +112,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await getBrowserSupabase()?.auth.signOut();
+    // Local scope: only this browser signs out, other devices of the same account keep their session.
+    await getBrowserSupabase()?.auth.signOut({ scope: "local" });
   }, []);
 
   const value = useMemo<AuthValue>(() => {
     const user: AuthUser | null = session ? { id: session.user.id, email: session.user.email ?? null } : null;
-    const organizers = user && memberships?.userId === user.id ? memberships.organizers : [];
+    const membershipsLoaded = !user || memberships?.userId === user.id;
+    const organizers = user && membershipsLoaded ? (memberships?.organizers ?? []) : [];
     return {
-      ready,
+      ready: sessionRead && membershipsLoaded,
       available: AUTH_AVAILABLE,
       user,
       organizers,
@@ -120,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
     };
-  }, [session, memberships, ready, signIn, signOut]);
+  }, [session, memberships, sessionRead, signIn, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

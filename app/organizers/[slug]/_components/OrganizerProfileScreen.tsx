@@ -43,9 +43,10 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
     setSavedIds(new Set(getSavedEventIds()));
     /* eslint-enable react-hooks/set-state-in-effect */
 
-    // Back from Edit profile with ?updated=1: the done toast, then a clean URL.
-    if (new URLSearchParams(window.location.search).get("updated") === "1") {
-      show(t("toast.profileUpdated"), "done");
+    // Back from Edit profile (?updated=1) or after deleting an event (?deleted=1): the done toast, then a clean URL.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("updated") === "1" || params.get("deleted") === "1") {
+      show(params.get("deleted") === "1" ? t("toast.eventDeleted") : t("toast.profileUpdated"), "done");
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, [slug, show, t]);

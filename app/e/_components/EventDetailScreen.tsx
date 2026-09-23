@@ -11,6 +11,7 @@ import { OrgLogo } from "@/components/ui/OrgLogo";
 import { Toast } from "@/components/ui/Toast";
 import { isOff, isSoon } from "@/lib/features";
 import { TopBar } from "@/app/_components/TopBar";
+import { useAuth } from "@/app/_lib/auth";
 import { useT } from "@/app/_lib/i18n";
 import { isEventSaved, toggleSavedEvent } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
@@ -36,6 +37,7 @@ export function EventDetailScreen({
 }) {
   const router = useRouter();
   const t = useT();
+  const { ready, isMemberOf } = useAuth();
   const { toast, show, showSoon } = useToast();
   const [saved, setSaved] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -44,7 +46,13 @@ export function EventDetailScreen({
     // One-time hydration of client-only localStorage state after mount.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSaved(isEventSaved(event.id));
-  }, [event.id]);
+
+    // Back from Edit event with ?updated=1: the done toast, then a clean URL.
+    if (new URLSearchParams(window.location.search).get("updated") === "1") {
+      show(t("toast.eventUpdated"), "done");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [event.id, show, t]);
 
   function goBack() {
     if (window.history.length > 1) router.back();
@@ -82,6 +90,8 @@ export function EventDetailScreen({
   const calendarSoon = isSoon("calendarExport");
   const promo = event.promo && !isOff("promoCodes") ? event.promo : null;
   const promoSoon = isSoon("promoCodes");
+  // The organizer's own account can edit or delete this event.
+  const canEdit = ready && !isOff("organizerProfile") && Boolean(event.organizerSlug) && isMemberOf(event.organizerSlug ?? "");
 
   const start = new Date(event.start);
   const end = event.end ? new Date(event.end) : null;
@@ -227,6 +237,12 @@ export function EventDetailScreen({
               )
             ) : null}
           </div>
+        ) : null}
+
+        {canEdit ? (
+          <Button variant="secondary" full icon="pencil" onClick={() => router.push(`/e/${event.id}/edit`)}>
+            {t("event.edit")}
+          </Button>
         ) : null}
 
         {promo ? (

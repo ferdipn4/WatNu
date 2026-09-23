@@ -113,7 +113,8 @@ async function main(): Promise<void> {
     record("publish under another slug is refused", foreign.status === 403, `status ${foreign.status} ${errorOf(foreign.json)}`);
   }
 
-  await supabase.auth.signOut();
+  // Local scope only: the default (global) sign-out would revoke every session of this user, including a browser's.
+  await supabase.auth.signOut({ scope: "local" });
 
   const failed = checks.filter((check) => !check.ok);
   console.log(`\n${checks.length - failed.length}/${checks.length} checks passed.`);

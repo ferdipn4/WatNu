@@ -31,6 +31,8 @@ export const en = {
   "toast.profileUpdated": "Profile updated",
   "toast.cleared": "Cleared — saved events and follows are gone",
   "toast.signedOut": "Signed out",
+  "toast.eventUpdated": "Event updated",
+  "toast.eventDeleted": "Event deleted",
   "image.error": "Could not process that image.",
 
   // the six categories and four organizer types (data values stay English; these are the labels)
@@ -190,6 +192,19 @@ export const en = {
   "event.upcoming_one": "1 upcoming",
   "event.upcoming_other": "{count} upcoming",
   "event.addToCalendar": "Add to calendar",
+  "event.edit": "Edit event",
+
+  // edit event (the organizer's own)
+  "eventEdit.title": "Edit event",
+  "eventEdit.save": "Save changes",
+  "eventEdit.saving": "Saving…",
+  "eventEdit.error": "Could not save the event.",
+  "eventEdit.delete": "Delete event",
+  "eventEdit.deleteConfirm": "Tap again to delete",
+  "eventEdit.deleting": "Deleting…",
+  "eventEdit.deleteError": "Could not delete the event.",
+  "eventEdit.signedOut.title": "Sign in to edit this event",
+  "eventEdit.forbidden.title": "Only the organizer can edit this event",
   "event.promo.body": "Show the QR code at the door",
   "sheet.context": "{organizer} at {location} · {when}",
   "sheet.until": "{day} until {time}",

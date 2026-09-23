@@ -28,6 +28,8 @@ export const nl: Record<MessageKey, string> = {
   "toast.profileUpdated": "Profiel bijgewerkt",
   "toast.cleared": "Gewist — je opgeslagen evenementen en gevolgde organisatoren zijn weg",
   "toast.signedOut": "Uitgelogd",
+  "toast.eventUpdated": "Evenement bijgewerkt",
+  "toast.eventDeleted": "Evenement verwijderd",
   "image.error": "Deze afbeelding kon niet worden verwerkt.",
 
   "category.Sport": "Sport",
@@ -185,6 +187,19 @@ export const nl: Record<MessageKey, string> = {
   "event.upcoming_one": "1 aankomend",
   "event.upcoming_other": "{count} aankomend",
   "event.addToCalendar": "In agenda zetten",
+  "event.edit": "Evenement bewerken",
+
+  // edit event (the organizer's own)
+  "eventEdit.title": "Evenement bewerken",
+  "eventEdit.save": "Wijzigingen opslaan",
+  "eventEdit.saving": "Opslaan…",
+  "eventEdit.error": "Het evenement kon niet worden opgeslagen.",
+  "eventEdit.delete": "Evenement verwijderen",
+  "eventEdit.deleteConfirm": "Tik nog eens om te verwijderen",
+  "eventEdit.deleting": "Verwijderen…",
+  "eventEdit.deleteError": "Het evenement kon niet worden verwijderd.",
+  "eventEdit.signedOut.title": "Log in om dit evenement te bewerken",
+  "eventEdit.forbidden.title": "Alleen de organisator kan dit evenement bewerken",
   "event.promo.body": "Laat de QR-code zien aan de deur",
   "sheet.context": "{organizer} bij {location} · {when}",
   "sheet.until": "{day} tot {time}",

@@ -74,6 +74,14 @@ export const nl: Record<MessageKey, string> = {
   "home.empty.next.action": "Terug naar deze week",
   "home.empty.this.title": "Deze week nog niets",
   "home.empty.this.action": "Volgende week",
+  "home.view.list": "Lijst",
+  "home.view.calendar": "Kalender",
+  "home.calendar.previous": "Vorige maand",
+  "home.calendar.next": "Volgende maand",
+  "home.calendar.allDays": "Alle dagen",
+  "home.empty.day.title": "Niets op deze dag",
+  "home.empty.day.body": "Kies een andere dag, of bekijk de hele maand.",
+  "home.empty.month.title": "Deze maand nog niets",
 
   // organizers directory
   "organizers.title": "Organisatoren",
@@ -306,6 +314,11 @@ export const nl: Record<MessageKey, string> = {
   "suggestion.body": "Zelfde tijd op {day}; {weekday} heeft {events}.",
   "suggestion.move": "Verplaats naar {day}",
   "suggestion.soon": "Suggesties zitten nog niet in deze versie",
+
+  // offline (the service worker's fallback page)
+  "offline.title": "Je bent offline",
+  "offline.body": "Nieuwe evenementen hebben verbinding nodig. Wat je al opende, en je opgeslagen evenementen, zijn er nog.",
+  "offline.retry": "Opnieuw proberen",
 
   // promo redemption (demo)
   "promo.none": "Geen promo gevonden voor deze organisator.",

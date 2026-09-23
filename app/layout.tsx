@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, DM_Sans } from 'next/font/google';
 import Script from 'next/script';
+import { ServiceWorker } from '@/app/_components/ServiceWorker';
 import { AuthProvider } from '@/app/_lib/auth';
 import { LocaleProvider } from '@/app/_lib/i18n/provider';
 import { getServerLocale } from '@/app/_lib/i18n/server';
@@ -50,6 +51,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div id="app">{children}</div>
           </AuthProvider>
         </LocaleProvider>
+        <ServiceWorker />
       </body>
     </html>
   );

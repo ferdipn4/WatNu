@@ -79,6 +79,14 @@ export const en = {
   "home.empty.next.action": "Back to this week",
   "home.empty.this.title": "Nothing on this week yet",
   "home.empty.this.action": "Next week",
+  "home.view.list": "List",
+  "home.view.calendar": "Calendar",
+  "home.calendar.previous": "Previous month",
+  "home.calendar.next": "Next month",
+  "home.calendar.allDays": "All days",
+  "home.empty.day.title": "Nothing on this day",
+  "home.empty.day.body": "Pick another day, or see the whole month.",
+  "home.empty.month.title": "Nothing on this month yet",
 
   // organizers directory
   "organizers.title": "Organizers",
@@ -311,6 +319,11 @@ export const en = {
   "suggestion.body": "Same time on {day}; {weekday} has {events}.",
   "suggestion.move": "Move to {day}",
   "suggestion.soon": "Suggestions are not in this version yet",
+
+  // offline (the service worker's fallback page)
+  "offline.title": "You're offline",
+  "offline.body": "New events need a connection. What you already opened, and your saved events, are still here.",
+  "offline.retry": "Try again",
 
   // promo redemption (demo)
   "promo.none": "No promo found for this organizer.",

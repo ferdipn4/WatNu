@@ -7,12 +7,24 @@ import type { Locale } from "./locale";
  */
 const NAMES: Record<
   Locale,
-  { weekdayShort: string[]; weekdayLong: string[]; monthShort: string[]; today: string; tomorrow: string; tonight: string }
+  {
+    weekdayShort: string[];
+    weekdayLong: string[];
+    /** two letters for the calendar's column heads */
+    weekdayMin: string[];
+    monthShort: string[];
+    monthLong: string[];
+    today: string;
+    tomorrow: string;
+    tonight: string;
+  }
 > = {
   en: {
     weekdayShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     weekdayLong: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    weekdayMin: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
     monthShort: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    monthLong: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
     today: "Today",
     tomorrow: "Tomorrow",
     tonight: "Tonight",
@@ -20,7 +32,9 @@ const NAMES: Record<
   nl: {
     weekdayShort: ["zo", "ma", "di", "wo", "do", "vr", "za"],
     weekdayLong: ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"],
+    weekdayMin: ["zo", "ma", "di", "wo", "do", "vr", "za"],
     monthShort: ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"],
+    monthLong: ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"],
     today: "Vandaag",
     tomorrow: "Morgen",
     tonight: "Vanavond",

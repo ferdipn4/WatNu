@@ -74,6 +74,7 @@ create or replace function is_organizer_member(slug_to_check text)
 returns boolean
 language sql
 stable
+set search_path = public
 as $$
   select exists (
     select 1

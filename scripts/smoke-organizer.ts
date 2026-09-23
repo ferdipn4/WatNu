@@ -1,0 +1,126 @@
+/**
+ * End-to-end check of organizer accounts and row level security against a running dev server.
+ * Signs in as a demo organizer, then walks the write routes: reads /api/me, re-saves the own
+ * profile (a no-op write), publishes a throwaway event, edits and deletes it — and proves that
+ * another organizer's profile and slug are refused.
+ *
+ * Usage (dev server must be running, account from scripts/create-demo-organizer.ts):
+ *   node --env-file=.env.local --experimental-strip-types scripts/smoke-organizer.ts <email> <password>
+ */
+import { createClient } from "@supabase/supabase-js";
+
+const BASE_URL = process.env.WATNU_BASE_URL ?? "http://localhost:3000";
+const [email, password] = process.argv.slice(2);
+
+type Check = { name: string; ok: boolean; detail: string };
+const checks: Check[] = [];
+
+function record(name: string, ok: boolean, detail: string): void {
+  checks.push({ name, ok, detail });
+  console.log(`${ok ? "PASS" : "FAIL"}  ${name} — ${detail}`);
+}
+
+async function api(token: string | null, method: string, path: string, body?: unknown): Promise<{ status: number; json: unknown }> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const json: unknown = await response.json().catch(() => null);
+  return { status: response.status, json };
+}
+
+function errorOf(json: unknown): string {
+  return json && typeof json === "object" && "error" in json ? String((json as { error: unknown }).error) : "";
+}
+
+async function main(): Promise<void> {
+  if (!email || !password) {
+    console.error("Usage: smoke-organizer.ts <email> <password>");
+    process.exitCode = 1;
+    return;
+  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) throw new Error("NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are not set (pass --env-file=.env.local).");
+
+  // 1. Sign in exactly like the app does.
+  const supabase = createClient(new URL(url).origin, anonKey, { auth: { persistSession: false } });
+  const signIn = await supabase.auth.signInWithPassword({ email, password });
+  if (signIn.error || !signIn.data.session) throw new Error(`Sign-in failed: ${signIn.error?.message ?? "no session"}`);
+  const token = signIn.data.session.access_token;
+  record("sign in", true, email);
+
+  // 2. Without a token the write routes refuse.
+  const anon = await api(null, "GET", "/api/me");
+  record("anonymous /api/me is 401", anon.status === 401, `status ${anon.status}`);
+
+  // 3. Who am I, and which organizer do I manage?
+  const me = await api(token, "GET", "/api/me");
+  const organizers = (me.json as { organizers?: { slug: string; name: string }[] } | null)?.organizers ?? [];
+  record("/api/me lists a managed organizer", me.status === 200 && organizers.length > 0, `status ${me.status}, ${organizers.map((o) => o.slug).join(", ") || "none"}`);
+  const own = organizers[0]?.slug;
+  if (!own) throw new Error("This account manages no organizer; link one with scripts/create-demo-organizer.ts first.");
+
+  const directory = await api(null, "GET", "/api/organizers");
+  const other = ((directory.json as { organizers?: { slug: string }[] } | null)?.organizers ?? []).find((o) => o.slug !== own)?.slug;
+
+  // 4. Re-save the own profile (same description → a no-op write that still passes through RLS).
+  const profile = await api(null, "GET", `/api/organizers/${encodeURIComponent(own)}`);
+  const description = (profile.json as { organizer?: { description: string | null } } | null)?.organizer?.description ?? null;
+  const ownPatch = await api(token, "PATCH", `/api/organizers/${encodeURIComponent(own)}`, { description });
+  record("update own profile", ownPatch.status === 200, `status ${ownPatch.status} ${errorOf(ownPatch.json)}`);
+
+  // 5. Another organizer's profile is invisible to the update.
+  if (other) {
+    const otherPatch = await api(token, "PATCH", `/api/organizers/${encodeURIComponent(other)}`, { description: "smoke test" });
+    record("update another organizer is refused", otherPatch.status === 404, `status ${otherPatch.status} ${errorOf(otherPatch.json)}`);
+  }
+
+  // 6. Publish, edit and delete a throwaway event under the own slug.
+  const start = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const created = await api(token, "POST", "/api/events", {
+    title: "Smoke test (delete me)",
+    start,
+    location_name: "Smoke test",
+    category: "Social",
+    price_eur: 0,
+    organizer_slug: own,
+    newcomer_friendly: false,
+  });
+  const eventId = (created.json as { event?: { id: string } } | null)?.event?.id;
+  record("publish own event", created.status === 201 && Boolean(eventId), `status ${created.status} ${errorOf(created.json)}`);
+
+  if (eventId) {
+    const edited = await api(token, "PATCH", `/api/events/${eventId}`, { title: "Smoke test (edited)" });
+    record("edit own event", edited.status === 200, `status ${edited.status} ${errorOf(edited.json)}`);
+
+    const deleted = await fetch(`${BASE_URL}/api/events/${eventId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    record("delete own event", deleted.status === 204, `status ${deleted.status}`);
+  }
+
+  // 7. Publishing under another organizer's slug is refused by RLS.
+  if (other) {
+    const foreign = await api(token, "POST", "/api/events", {
+      title: "Smoke test (must be refused)",
+      start,
+      category: "Social",
+      organizer_slug: other,
+    });
+    record("publish under another slug is refused", foreign.status === 403, `status ${foreign.status} ${errorOf(foreign.json)}`);
+  }
+
+  await supabase.auth.signOut();
+
+  const failed = checks.filter((check) => !check.ok);
+  console.log(`\n${checks.length - failed.length}/${checks.length} checks passed.`);
+  if (failed.length > 0) process.exitCode = 1;
+}
+
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});

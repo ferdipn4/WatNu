@@ -26,7 +26,7 @@ export function SignInScreen({ next }: { next: string }) {
 
   function close() {
     if (window.history.length > 1) router.back();
-    else router.push("/mine/profile");
+    else router.push("/profile");
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

@@ -15,7 +15,7 @@ import { ScreenHeader } from "@/app/_components/ScreenHeader";
 import { TabScreen } from "@/app/_components/TabScreen";
 import { getJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
-import { getDisplayName, getFollowedOrganizers, getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
+import { getFollowedOrganizers, getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
 import type { ApiEvent } from "@/app/_lib/types";
 import { useToast } from "@/app/_lib/use-toast";
 import { eventHref, mapApiEvent, type ViewEvent, type ViewOrganizer } from "@/app/_lib/view-model";
@@ -52,14 +52,12 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
   const { toast, showSoon } = useToast();
   const [followedSlugs, setFollowedSlugs] = useState<string[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
-  const [name, setName] = useState("");
   const [pastSaved, setPastSaved] = useState<ViewEvent[]>([]);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
     setFollowedSlugs(getFollowedOrganizers());
     setSavedIds(getSavedEventIds());
-    setName(getDisplayName());
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -118,20 +116,6 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
   const showFollowing = !isOff("follow") && followedOrganizers.length > 0;
   const extraFollowed = followedOrganizers.length - 3;
 
-  // The wordmark row's right slot opens the profile: your initials once you have a name, a person icon before.
-  const profileButton = name ? (
-    <button
-      type="button"
-      aria-label={t("mine.profileButton")}
-      onClick={() => router.push("/mine/profile")}
-      className="rounded-full focus-visible:shadow-ring focus-visible:outline-none"
-    >
-      <OrgLogo name={name} type="association" size="md" round />
-    </button>
-  ) : (
-    <Button iconOnly round variant="secondary" icon="user" aria-label={t("mine.profileButton")} onClick={() => router.push("/mine/profile")} />
-  );
-
   function renderCard(event: ViewEvent) {
     const start = new Date(event.start);
     const end = event.end ? new Date(event.end) : null;
@@ -168,7 +152,7 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
 
   return (
     <TabScreen active="mine">
-      <ScreenHeader title={t("mine.title")} meta={t("mine.meta")} right={profileButton} />
+      <ScreenHeader title={t("mine.title")} meta={t("mine.meta")} />
 
       {showFollowing ? (
         <div className="mt-1 px-4">

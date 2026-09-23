@@ -3,9 +3,12 @@
 import { useT } from "@/app/_lib/i18n";
 import { Icon, cx, type IconName } from "./Icon";
 
+/** The five slots: This week · Organizers · + · My WatNu (saved and followed) · Profile (you, or your organization). */
+export type TabId = "week" | "organizers" | "create" | "mine" | "profile";
+
 export interface TabBarProps {
-  active: "week" | "organizers" | "create" | "mine";
-  onChange?: (tab: "week" | "organizers" | "create" | "mine") => void;
+  active: TabId;
+  onChange?: (tab: TabId) => void;
   className?: string;
 }
 
@@ -14,9 +17,10 @@ const TABS: ReadonlyArray<{ id: TabBarProps["active"]; icon: IconName }> = [
   { id: "organizers", icon: "users" },
   { id: "create", icon: "plus" },
   { id: "mine", icon: "bookmark" },
+  { id: "profile", icon: "user" },
 ];
 
-/** The bottom bar on every top-level screen: This week · Organizers · + · My WatNu. */
+/** The bottom bar on every top-level screen: This week · Organizers · + · My WatNu · Profile. */
 export function TabBar({ active, onChange, className }: TabBarProps) {
   const t = useT();
   // 64px plus the device's bottom safe area (20px on the design's phone frame, and the minimum here so the bar looks the same on desktop).
@@ -24,7 +28,7 @@ export function TabBar({ active, onChange, className }: TabBarProps) {
     <nav
       aria-label={t("tabs.aria")}
       className={cx(
-        "absolute inset-x-0 bottom-0 z-2 grid h-[calc(64px+max(20px,env(safe-area-inset-bottom)))] grid-cols-4 border-t border-line bg-surface-raised pb-[max(20px,env(safe-area-inset-bottom))]",
+        "absolute inset-x-0 bottom-0 z-2 grid h-[calc(64px+max(20px,env(safe-area-inset-bottom)))] grid-cols-5 border-t border-line bg-surface-raised pb-[max(20px,env(safe-area-inset-bottom))]",
         className,
       )}
     >

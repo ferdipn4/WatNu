@@ -9,6 +9,7 @@ const TAB_ROUTES: Record<TabBarProps["active"], string> = {
   organizers: "/organizers",
   create: "/new",
   mine: "/mine",
+  profile: "/profile",
 };
 
 /**

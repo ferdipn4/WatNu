@@ -1,7 +1,6 @@
-// app/mine/profile/page.tsx — your profile and settings, opened from My WatNu's header.
-// Everything here is per phone: the name, the theme, the language; plus the organizer sign-in.
-import { ProfileScreen } from "./_components/ProfileScreen";
+// app/mine/profile/page.tsx — the profile moved to its own tab (/profile); the old link still lands there.
+import { permanentRedirect } from "next/navigation";
 
-export default function ProfilePage() {
-  return <ProfileScreen />;
+export default function LegacyProfilePage() {
+  permanentRedirect("/profile");
 }

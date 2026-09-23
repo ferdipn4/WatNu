@@ -79,7 +79,7 @@ function openPicker(ref: RefObject<HTMLSelectElement | null>) {
 export function EditOrganizerScreen({ slug, organizer }: { slug: string; organizer: ViewOrganizer | null }) {
   const router = useRouter();
   const t = useT();
-  const { ready, user, isMemberOf } = useAuth();
+  const { ready, user, canManage } = useAuth();
   const { toast } = useToast();
   const [initial] = useState<FormState | null>(() => (organizer ? formFrom(organizer) : null));
   const [form, setForm] = useState<FormState | null>(initial);
@@ -157,7 +157,7 @@ export function EditOrganizerScreen({ slug, organizer }: { slug: string; organiz
     );
   }
 
-  if (!user || !isMemberOf(slug)) {
+  if (!user || !canManage(slug)) {
     const signedOut = !user;
     return (
       <div className="flex min-h-dvh flex-col">

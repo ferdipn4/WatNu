@@ -30,6 +30,10 @@ type AuthValue = {
   user: AuthUser | null;
   organizers: ManagedOrganizer[];
   isMemberOf: (slug: string) => boolean;
+  /** a row in `admins`: the account manages every organizer and event, and the access requests */
+  isAdmin: boolean;
+  /** a member of that organizer, or an admin — what the edit screens gate on */
+  canManage: (slug: string) => boolean;
   signIn: (email: string, password: string) => Promise<SignInResult>;
   signOut: () => Promise<void>;
 };
@@ -37,6 +41,7 @@ type AuthValue = {
 type MeResponse = {
   user: AuthUser;
   organizers: { id: string; slug: string; name: string; type: string | null; category: string | null; logo_file: string | null }[];
+  is_admin?: boolean;
 };
 
 const ORGANIZER_TYPES: OrganizerType[] = ["association", "cafe", "club", "venue"];
@@ -59,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [sessionRead, setSessionRead] = useState(!AUTH_AVAILABLE);
   // Memberships are keyed by user so a sign-out never shows the previous account's organizers.
-  const [memberships, setMemberships] = useState<{ userId: string; organizers: ManagedOrganizer[] } | null>(null);
+  const [memberships, setMemberships] = useState<{ userId: string; organizers: ManagedOrganizer[]; isAdmin: boolean } | null>(null);
 
   useEffect(() => {
     const supabase = getBrowserSupabase();
@@ -86,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     getJson<MeResponse>("/api/me")
       .then((me) => {
-        if (active) setMemberships({ userId, organizers: me.organizers.map(toManaged) });
+        if (active) setMemberships({ userId, organizers: me.organizers.map(toManaged), isAdmin: me.is_admin === true });
       })
       .catch((error: unknown) => {
         if (!active) return;
@@ -96,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           void getBrowserSupabase()?.auth.signOut({ scope: "local" });
           return;
         }
-        setMemberships({ userId, organizers: [] });
+        setMemberships({ userId, organizers: [], isAdmin: false });
       });
     return () => {
       active = false;
@@ -120,12 +125,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const user: AuthUser | null = session ? { id: session.user.id, email: session.user.email ?? null } : null;
     const membershipsLoaded = !user || memberships?.userId === user.id;
     const organizers = user && membershipsLoaded ? (memberships?.organizers ?? []) : [];
+    const isAdmin = Boolean(user && membershipsLoaded && memberships?.isAdmin);
+    const isMemberOf = (slug: string) => organizers.some((organizer) => organizer.slug === slug);
     return {
       ready: sessionRead && membershipsLoaded,
       available: AUTH_AVAILABLE,
       user,
       organizers,
-      isMemberOf: (slug) => organizers.some((organizer) => organizer.slug === slug),
+      isMemberOf,
+      isAdmin,
+      canManage: (slug) => isAdmin || isMemberOf(slug),
       signIn,
       signOut,
     };

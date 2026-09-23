@@ -30,7 +30,10 @@ export async function GET(request: Request) {
       .flatMap((row) => (Array.isArray(row.organizers) ? row.organizers : row.organizers ? [row.organizers] : []))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    return NextResponse.json({ user: { id: user.id, email: user.email ?? null }, organizers });
+    // Admins (a row in `admins`) manage every organizer and event, and the access requests.
+    const { data: admin } = await supabase.rpc("is_admin");
+
+    return NextResponse.json({ user: { id: user.id, email: user.email ?? null }, organizers, is_admin: admin === true });
   } catch (error) {
     return handleRouteError(error);
   }

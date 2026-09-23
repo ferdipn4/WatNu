@@ -127,6 +127,128 @@ create policy "members delete their events"
   to authenticated
   using (is_organizer_member(organizer_slug));
 
+-- ---------------------------------------------------------------------------------------------
+-- Admins and access requests. An admin (a row in `admins`, added with scripts/make-admin.ts) may
+-- edit or delete any organizer and any event, create organizers, and handle the access requests
+-- that organizers send from /organizers/join. Nothing sends mail: the admin creates the account
+-- with scripts/create-demo-organizer.ts and passes the password on personally.
+create table if not exists admins (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+alter table admins enable row level security;
+
+drop policy if exists "admins see themselves" on admins;
+create policy "admins see themselves"
+  on admins
+  for select
+  to authenticated
+  using (user_id = auth.uid());
+
+-- Whether the signed-in user is an admin.
+create or replace function is_admin()
+returns boolean
+language sql
+stable
+set search_path = public
+as $$
+  select exists (select 1 from admins where user_id = auth.uid());
+$$;
+
+grant execute on function is_admin() to authenticated;
+
+-- Admins write wherever members do, plus they create and remove organizers.
+drop policy if exists "admins insert organizers" on organizers;
+create policy "admins insert organizers"
+  on organizers
+  for insert
+  to authenticated
+  with check (is_admin());
+
+drop policy if exists "admins update any organizer" on organizers;
+create policy "admins update any organizer"
+  on organizers
+  for update
+  to authenticated
+  using (is_admin())
+  with check (is_admin());
+
+drop policy if exists "admins delete organizers" on organizers;
+create policy "admins delete organizers"
+  on organizers
+  for delete
+  to authenticated
+  using (is_admin());
+
+drop policy if exists "admins insert any event" on events;
+create policy "admins insert any event"
+  on events
+  for insert
+  to authenticated
+  with check (is_admin());
+
+drop policy if exists "admins update any event" on events;
+create policy "admins update any event"
+  on events
+  for update
+  to authenticated
+  using (is_admin())
+  with check (is_admin());
+
+drop policy if exists "admins delete any event" on events;
+create policy "admins delete any event"
+  on events
+  for delete
+  to authenticated
+  using (is_admin());
+
+-- "I organize something, let me in": sent from the app by anyone, read and decided by admins.
+create table if not exists organizer_requests (
+  id uuid primary key default gen_random_uuid(),
+  organization text not null check (char_length(organization) between 2 and 120),
+  contact_name text not null check (char_length(contact_name) between 2 and 120),
+  email text not null check (char_length(email) between 5 and 200),
+  instagram_handle text check (char_length(instagram_handle) <= 60),
+  message text check (char_length(message) <= 600),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'declined')),
+  created_at timestamptz not null default now(),
+  decided_at timestamptz
+);
+
+create index if not exists organizer_requests_status_idx on organizer_requests (status, created_at desc);
+
+alter table organizer_requests enable row level security;
+
+drop policy if exists "anyone may ask for access" on organizer_requests;
+create policy "anyone may ask for access"
+  on organizer_requests
+  for insert
+  to anon, authenticated
+  with check (status = 'pending' and decided_at is null);
+
+drop policy if exists "admins read access requests" on organizer_requests;
+create policy "admins read access requests"
+  on organizer_requests
+  for select
+  to authenticated
+  using (is_admin());
+
+drop policy if exists "admins decide access requests" on organizer_requests;
+create policy "admins decide access requests"
+  on organizer_requests
+  for update
+  to authenticated
+  using (is_admin())
+  with check (is_admin());
+
+drop policy if exists "admins remove access requests" on organizer_requests;
+create policy "admins remove access requests"
+  on organizer_requests
+  for delete
+  to authenticated
+  using (is_admin());
+
 -- Organizer stats: views, saves and follows, counted per day by the app (POST /api/metrics →
 -- record_metric). Nobody touches the table directly; the two definer functions below do. Only the
 -- organizer's members read the numbers (organizer_stats), unless the organizer sets stats_public.

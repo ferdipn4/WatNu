@@ -43,14 +43,14 @@ function StatCell({ value, label }: { value: number; label: string }) {
 export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewOrganizer | null; events: ViewEvent[] }) {
   const router = useRouter();
   const t = useT();
-  const { ready, user, isMemberOf } = useAuth();
+  const { ready, user, canManage } = useAuth();
   const { toast, show, showSoon } = useToast();
   const [following, setFollowing] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
   const [stats, setStats] = useState<OrganizerStats | null>(null);
 
   const slug = organizer?.slug ?? null;
-  const isOrganizer = ready && slug !== null && isMemberOf(slug);
+  const isOrganizer = ready && slug !== null && canManage(slug);
   // The stats card: for the organizer's own account always, for everyone once they made it public.
   const canSeeStats = ready && !isOff("organizerStats") && !isSoon("organizerStats") && (isOrganizer || organizer?.statsPublic === true);
 

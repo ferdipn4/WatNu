@@ -69,6 +69,9 @@ export function SignInScreen({ next }: { next: string }) {
         <Button type="submit" size="lg" full disabled={!canSubmit}>
           {busy ? t("signin.submitting") : t("signin.submit")}
         </Button>
+        <Button variant="ghost" full href="/organizers/join">
+          {t("join.link")}
+        </Button>
       </form>
     </div>
   );

@@ -43,7 +43,7 @@ export function EventDetailScreen({
 }) {
   const router = useRouter();
   const t = useT();
-  const { ready, isMemberOf } = useAuth();
+  const { ready, isMemberOf, canManage } = useAuth();
   const { toast, show, showSoon } = useToast();
   const [saved, setSaved] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -106,7 +106,7 @@ export function EventDetailScreen({
   // A promo on an event is the hard-coded demo (lib/promos.ts): shown working even while the feature is `soon`.
   const promo = event.promo && !isOff("promoCodes") ? event.promo : null;
   // The organizer's own account can edit or delete this event.
-  const canEdit = ready && !isOff("organizerProfile") && Boolean(event.organizerSlug) && isMemberOf(event.organizerSlug ?? "");
+  const canEdit = ready && !isOff("organizerProfile") && Boolean(event.organizerSlug) && canManage(event.organizerSlug ?? "");
 
   const start = new Date(event.start);
   const end = event.end ? new Date(event.end) : null;

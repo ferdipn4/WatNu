@@ -84,7 +84,7 @@ function changesBetween(initial: FormState, form: FormState, initialImage: strin
 export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | null }) {
   const router = useRouter();
   const t = useT();
-  const { ready, user, isMemberOf } = useAuth();
+  const { ready, user, canManage } = useAuth();
   const { toast, show, showSoon } = useToast();
   const [initial] = useState<FormState | null>(() => (event ? formFrom(event) : null));
   const [form, setForm] = useState<FormState | null>(initial);
@@ -214,7 +214,7 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
     );
   }
 
-  const allowed = Boolean(user) && Boolean(event.organizerSlug) && isMemberOf(event.organizerSlug ?? "");
+  const allowed = Boolean(user) && Boolean(event.organizerSlug) && canManage(event.organizerSlug ?? "");
   if (!allowed) {
     const signedOut = !user;
     return (

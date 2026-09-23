@@ -101,6 +101,17 @@ export async function requireUser(request: Request): Promise<UserContext> {
   return context;
 }
 
+/** Like {@link requireUser}, plus a row in `admins` — 403 otherwise. Admins manage every organizer and event, and the access requests. */
+export async function requireAdmin(request: Request): Promise<UserContext> {
+  const context = await requireUser(request);
+  const { data, error } = await context.supabase.rpc("is_admin");
+  if (error) throw new HttpError(502, `Could not check the admin role: ${error.message}`);
+  if (data !== true) throw new HttpError(403, "Admins only.");
+  return context;
+}
+
+export const REQUEST_COLUMNS = "id, organization, contact_name, email, instagram_handle, message, status, created_at, decided_at";
+
 /** Postgres raises 42501 when a write fails a row level security policy. */
 export function isRowLevelSecurityError(error: { code?: string } | null): boolean {
   return error?.code === "42501";

@@ -320,6 +320,49 @@ export const metricSchema = z.object({
   id: z.string().trim().min(1).max(200),
 });
 
+/** Body accepted by POST /api/organizer-requests: "I organize something, let me in". */
+export const organizerRequestSchema = z.object({
+  organization: z.string().trim().min(2).max(120),
+  contact_name: z.string().trim().min(2).max(120),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(200)
+    .transform((value) => value.toLowerCase()),
+  instagram_handle: optionalText.transform((value) => (value ? value.replace(/^@/, "").slice(0, 60) : null)),
+  message: optionalText.transform((value) => (value ? value.slice(0, 600) : null)),
+  /** a honeypot field the form keeps hidden; a bot fills it, a person never does */
+  website: z.string().optional(),
+});
+
+export type OrganizerRequestInput = z.infer<typeof organizerRequestSchema>;
+
+export const REQUEST_STATUSES = ["pending", "approved", "declined"] as const;
+export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+
+/** Body accepted by PATCH /api/organizer-requests/[id] (admins). */
+export const requestDecisionSchema = z.object({ status: z.enum(REQUEST_STATUSES) });
+
+/** Body accepted by POST /api/organizers (admins): a new organizer an account can then be linked to. */
+export const createOrganizerSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .transform((value) => value.toLowerCase())
+    .refine((value) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) && value.length >= 2 && value.length <= 80, {
+      message: "Use 2–80 lowercase letters, digits and dashes.",
+    }),
+  name: z.string().trim().min(2).max(120),
+  type: organizerTypeSchema,
+  category: eventCategorySchema,
+  instagram_handle: optionalText,
+  address: optionalText,
+  description: optionalText,
+});
+
+export type CreateOrganizerInput = z.infer<typeof createOrganizerSchema>;
+
 /** Shape returned to clients for validation failures. */
 export function validationError(error: z.ZodError) {
   const flat = error.flatten();

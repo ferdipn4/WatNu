@@ -56,7 +56,7 @@ export function ProfileScreen() {
   const router = useRouter();
   const t = useT();
   const { locale, setLocale } = useLocale();
-  const { ready, available, user, organizers, signOut } = useAuth();
+  const { ready, available, user, organizers, isAdmin, signOut } = useAuth();
   const { toast, show } = useToast();
 
   const [name, setName] = useState("");
@@ -200,6 +200,13 @@ export function ProfileScreen() {
           </Button>
         </section>
 
+        {isAdmin ? (
+          <section className="flex flex-col gap-3">
+            <h2 className="t-heading mt-1 text-ink">{t("you.admin")}</h2>
+            <ActionRow icon="users" title={t("you.admin.requests")} hint={t("you.admin.requestsHint")} onClick={() => router.push("/admin/requests")} />
+          </section>
+        ) : null}
+
         {showAccount && ready ? (
           <section className="flex flex-col gap-3">
             <div className="mt-1">
@@ -214,13 +221,19 @@ export function ProfileScreen() {
                 </Button>
               </>
             ) : (
-              <Card tone="sunken" tight onClick={() => router.push(signInHref(PROFILE_PATH))} className="flex! items-center gap-3">
-                <span className="min-w-0 flex-1">
-                  <span className="t-body-strong block text-ink">{t("you.account.none.title")}</span>
-                  <span className="t-meta block text-ink-muted">{t("you.account.none.body")}</span>
-                </span>
-                <Icon name="chevron-right" className="flex-none text-ink-muted" />
-              </Card>
+              <>
+                <Card tone="sunken" tight onClick={() => router.push(signInHref(PROFILE_PATH))} className="flex! items-center gap-3">
+                  <span className="min-w-0 flex-1">
+                    <span className="t-body-strong block text-ink">{t("you.account.none.title")}</span>
+                    <span className="t-meta block text-ink-muted">{t("you.account.none.body")}</span>
+                  </span>
+                  <Icon name="chevron-right" className="flex-none text-ink-muted" />
+                </Card>
+                <Card tone="sunken" tight onClick={() => router.push("/organizers/join")} className="flex! items-center gap-3">
+                  <span className="t-body-strong min-w-0 flex-1 text-ink">{t("you.account.none.request")}</span>
+                  <Icon name="chevron-right" className="flex-none text-ink-muted" />
+                </Card>
+              </>
             )}
           </section>
         ) : null}

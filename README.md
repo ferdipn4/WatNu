@@ -21,6 +21,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key, only for `scripts/create-demo-organizer.ts`; the app never uses it |
 | `ANTHROPIC_API_KEY` | Preferred AI provider |
 | `XAI_API_KEY` | Fallback provider (OpenAI SDK against `https://api.x.ai/v1`) |
+| `NEXT_PUBLIC_SITE_URL` | Absolute origin for link previews; optional on Vercel, where the production domain is used |
 
 `lib/ai.ts` uses Anthropic when `ANTHROPIC_API_KEY` is set and otherwise falls back
 to xAI. If neither key is present it throws.
@@ -42,6 +43,20 @@ only a member of an organizer (a row in `organizer_members`) updates that
 organizer and inserts, updates or deletes events under its slug. The write
 routes below and `POST /api/ingest` need the signed-in user's access token in
 an `Authorization: Bearer <token>` header; the app adds it automatically.
+
+Organizers that are not on WatNu yet ask for access at `/organizers/join`
+(linked from the directory, the sign-in screen and the profile tab). The request
+lands in `organizer_requests`; nothing is mailed. An admin — an account with a
+row in `admins`, added with
+
+```bash
+node --env-file=.env.local --experimental-strip-types scripts/make-admin.ts you@example.com
+```
+
+— reads the inbox at `/admin/requests`, approves, creates the organizer profile
+there when the organization is new, and gets the exact
+`create-demo-organizer.ts` command to run; the password is passed on
+personally. Admins may also edit or delete any organizer and any event.
 
 ### Images
 
@@ -180,6 +195,23 @@ Returns the organizer plus their upcoming events.
 ```bash
 curl.exe "http://localhost:3000/api/organizers/de-kroeg"
 ```
+
+### `POST /api/organizers`
+
+Admins only: creates an organizer (`slug`, `name`, `type`, `category`, optional
+`instagram_handle`, `address`, `description`) — the profile an account is linked
+to afterwards with `scripts/create-demo-organizer.ts`. 409 when the slug exists.
+
+### `POST /api/organizer-requests`
+
+Anyone: "let me in" (`organization`, `contact_name`, `email`, optional
+`instagram_handle`, `message`). Row level security only accepts a pending
+request; a filled `website` honeypot field is answered with 201 and dropped.
+
+### `GET /api/organizer-requests`, `PATCH` / `DELETE /api/organizer-requests/[id]`
+
+Admins only: the inbox (`?status=pending|approved|declined`, newest first), a
+decision (`{"status": "approved"}`), and removal.
 
 ### `POST /api/metrics`
 

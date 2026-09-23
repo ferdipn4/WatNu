@@ -64,6 +64,9 @@ async function main(): Promise<void> {
   record("/api/me lists a managed organizer", me.status === 200 && organizers.length > 0, `status ${me.status}, ${organizers.map((o) => o.slug).join(", ") || "none"}`);
   const own = organizers[0]?.slug;
   if (!own) throw new Error("This account manages no organizer; link one with scripts/create-demo-organizer.ts first.");
+  // An admin (scripts/make-admin.ts) may write everywhere, so the "refused" checks flip for it.
+  const isAdmin = (me.json as { is_admin?: boolean } | null)?.is_admin === true;
+  if (isAdmin) console.log("      (this account is an admin: cross-organizer writes are expected to succeed)");
 
   const directory = await api(null, "GET", "/api/organizers");
   const other = ((directory.json as { organizers?: { slug: string }[] } | null)?.organizers ?? []).find((o) => o.slug !== own)?.slug;
@@ -74,10 +77,14 @@ async function main(): Promise<void> {
   const ownPatch = await api(token, "PATCH", `/api/organizers/${encodeURIComponent(own)}`, { description });
   record("update own profile", ownPatch.status === 200, `status ${ownPatch.status} ${errorOf(ownPatch.json)}`);
 
-  // 5. Another organizer's profile is invisible to the update.
+  // 5. Another organizer's profile is invisible to the update (unless this account is an admin).
   if (other) {
-    const otherPatch = await api(token, "PATCH", `/api/organizers/${encodeURIComponent(other)}`, { description: "smoke test" });
-    record("update another organizer is refused", otherPatch.status === 404, `status ${otherPatch.status} ${errorOf(otherPatch.json)}`);
+    const otherProfile = await api(null, "GET", `/api/organizers/${encodeURIComponent(other)}`);
+    const otherDescription = (otherProfile.json as { organizer?: { description: string | null } } | null)?.organizer?.description ?? null;
+    // Same description → a no-op write for an admin, so nothing changes either way.
+    const otherPatch = await api(token, "PATCH", `/api/organizers/${encodeURIComponent(other)}`, { description: otherDescription });
+    if (isAdmin) record("admin updates another organizer", otherPatch.status === 200, `status ${otherPatch.status} ${errorOf(otherPatch.json)}`);
+    else record("update another organizer is refused", otherPatch.status === 404, `status ${otherPatch.status} ${errorOf(otherPatch.json)}`);
   }
 
   // 6. Publish, edit and delete a throwaway event under the own slug.
@@ -149,7 +156,31 @@ async function main(): Promise<void> {
     record("delete own event", deleted.status === 204, `status ${deleted.status}`);
   }
 
-  // 7. Publishing under another organizer's slug is refused by RLS.
+  // 6e. Access requests: anyone may ask; only admins read, decide and remove.
+  const asked = await api(null, "POST", "/api/organizer-requests", {
+    organization: "Smoke Test Society",
+    contact_name: "Smoke Tester",
+    email: "smoke@example.test",
+    instagram_handle: "@smoketest",
+    message: "Delete me.",
+  });
+  const requestId = (asked.json as { request?: { id: string | null } } | null)?.request?.id;
+  record("anyone may ask for access", asked.status === 201 && Boolean(requestId), `status ${asked.status} ${errorOf(asked.json)}`);
+  const inbox = await api(token, "GET", "/api/organizer-requests?status=pending");
+  if (isAdmin) {
+    const listed = ((inbox.json as { requests?: { id: string }[] } | null)?.requests ?? []).some((r) => r.id === requestId);
+    record("admin reads the requests", inbox.status === 200 && listed, `status ${inbox.status}`);
+    if (requestId) {
+      const declined = await api(token, "PATCH", `/api/organizer-requests/${requestId}`, { status: "declined" });
+      record("admin declines a request", declined.status === 200, `status ${declined.status} ${errorOf(declined.json)}`);
+      const removed = await fetch(`${BASE_URL}/api/organizer-requests/${requestId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      record("admin removes a request", removed.status === 204, `status ${removed.status}`);
+    }
+  } else {
+    record("non-admin cannot read the requests", inbox.status === 403, `status ${inbox.status} (this account is not an admin)`);
+  }
+
+  // 7. Publishing under another organizer's slug is refused by RLS (an admin may, and the event is removed again).
   if (other) {
     const foreign = await api(token, "POST", "/api/events", {
       title: "Smoke test (must be refused)",
@@ -157,7 +188,13 @@ async function main(): Promise<void> {
       category: "Social",
       organizer_slug: other,
     });
-    record("publish under another slug is refused", foreign.status === 403, `status ${foreign.status} ${errorOf(foreign.json)}`);
+    const foreignId = (foreign.json as { event?: { id: string } } | null)?.event?.id;
+    if (isAdmin) record("admin publishes under another slug", foreign.status === 201 && Boolean(foreignId), `status ${foreign.status} ${errorOf(foreign.json)}`);
+    else record("publish under another slug is refused", foreign.status === 403, `status ${foreign.status} ${errorOf(foreign.json)}`);
+    if (foreignId) {
+      const cleaned = await fetch(`${BASE_URL}/api/events/${foreignId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      record("the admin's foreign event is removed again", cleaned.status === 204, `status ${cleaned.status}`);
+    }
   }
 
   // 8. Storage: organizers upload media, everyone reads it, uploaders remove their own files.

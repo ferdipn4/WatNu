@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { Field } from "@/components/ui/Field";
+import { Icon } from "@/components/ui/Icon";
 import { OrganizerCard } from "@/components/ui/OrganizerCard";
 import { Toast } from "@/components/ui/Toast";
 import { isOff, isSoon } from "@/lib/features";
@@ -154,6 +156,17 @@ export function OrganizersScreen({ organizers }: { organizers: ViewOrganizer[] }
             />
           ))
         )}
+      </div>
+
+      {/* The way in for an organizer that is not listed yet. */}
+      <div className="px-4 pt-6">
+        <Card tone="sunken" tight onClick={() => router.push("/organizers/join")} className="flex! items-center gap-3">
+          <span className="min-w-0 flex-1">
+            <span className="t-body-strong block text-ink">{t("join.link.directory")}</span>
+            <span className="t-meta block text-ink-muted">{t("join.link")}</span>
+          </span>
+          <Icon name="chevron-right" className="flex-none text-ink-muted" />
+        </Card>
       </div>
 
       {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}

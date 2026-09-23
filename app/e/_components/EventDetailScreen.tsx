@@ -22,7 +22,8 @@ import type { ViewEvent, ViewOrganizer } from "../_lib/view-data";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import { PromoSheet } from "./PromoSheet";
 
-const REPEAT_TAG_KEYS = { weekly: "repeat.tag.weekly", biweekly: "repeat.tag.biweekly", monthly: "repeat.tag.monthly" } as const;
+/** The kicker above a recurring event's title, the same marker the cards carry. */
+const REPEAT_KICKER_KEYS = { weekly: "repeat.weekly", biweekly: "repeat.biweekly", monthly: "repeat.monthly" } as const;
 
 /** "10% off with WatNu" → "10% off" — the short tag for the tags row; the promo card keeps the full label. */
 function promoTagLabel(label: string): string {
@@ -175,11 +176,16 @@ export function EventDetailScreen({
         <div className="flex flex-wrap gap-1">
           {past ? <Chip size="sm" tone="ink" label={t("event.past")} /> : null}
           <Chip size="sm" label={t.category(event.category)} />
-          {event.recurrence ? <Chip size="sm" icon="repeat" label={t(REPEAT_TAG_KEYS[event.recurrence])} /> : null}
           {event.newcomers ? <Chip size="sm" tone="maas" label={t("common.newcomers")} /> : null}
           {promo ? <Chip size="sm" tone="accent" icon="ticket" label={promoTagLabel(promo.label)} /> : null}
         </div>
 
+        {event.recurrence ? (
+          <span className="-mb-2 flex items-center gap-1 text-xs font-semibold leading-4 tracking-[0.01em] text-accent">
+            <Icon name="repeat" size={12} />
+            {t(REPEAT_KICKER_KEYS[event.recurrence])}
+          </span>
+        ) : null}
         <h1 className="t-title text-ink">{event.title}</h1>
 
         <div className="flex flex-col gap-2">

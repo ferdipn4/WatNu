@@ -214,9 +214,6 @@ export const nl: Record<MessageKey, string> = {
   "repeat.weekly": "Elke week",
   "repeat.biweekly": "Om de week",
   "repeat.monthly": "Elke maand",
-  "repeat.tag.weekly": "Wekelijks",
-  "repeat.tag.biweekly": "Om de week",
-  "repeat.tag.monthly": "Maandelijks",
 
   // edit event (the organizer's own)
   "eventEdit.title": "Evenement bewerken",

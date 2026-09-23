@@ -219,9 +219,6 @@ export const en = {
   "repeat.weekly": "Every week",
   "repeat.biweekly": "Every 2 weeks",
   "repeat.monthly": "Every month",
-  "repeat.tag.weekly": "Weekly",
-  "repeat.tag.biweekly": "Every 2 weeks",
-  "repeat.tag.monthly": "Monthly",
 
   // edit event (the organizer's own)
   "eventEdit.title": "Edit event",

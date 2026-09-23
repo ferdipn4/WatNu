@@ -22,6 +22,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `ANTHROPIC_API_KEY` | Preferred AI provider |
 | `XAI_API_KEY` | Fallback provider (OpenAI SDK against `https://api.x.ai/v1`) |
 | `NEXT_PUBLIC_SITE_URL` | Absolute origin for link previews; optional on Vercel, where the production domain is used |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | The contact shown on `/about` (the privacy page); the line is left out when unset |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | The Web Push key pair (`npx web-push generate-vapid-keys`) |
 | `VAPID_SUBJECT` | A `mailto:` or `https:` contact for push services |
 | `CRON_SECRET` | What Vercel's cron sends to `/api/push/run`; the same value goes into `app_config.push_cron_secret` |
@@ -271,6 +272,15 @@ curl.exe -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/me
 `PATCH /api/organizers/[slug]`, `PATCH /api/events/[id]` and
 `DELETE /api/events/[id]` take the same header and only touch rows the signed-in
 organizer manages (404 for anyone else's).
+
+## Checks that run on every push
+
+`npm run check` = `tsc --noEmit`, `eslint`, and the unit tests in `tests/`
+(vitest: recurrence expansion across the DST switch, schemas, date helpers,
+the two dictionaries, the view model, the clock-row copy). The GitHub Action in
+`.github/workflows/ci.yml` runs the same plus `next build` on every push and
+pull request. `scripts/smoke-organizer.ts` stays the end-to-end check against
+a running server (see below).
 
 ## Installing the app
 

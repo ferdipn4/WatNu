@@ -281,6 +281,11 @@ export function ProfileScreen() {
             )}
           </section>
         ) : null}
+
+        <section className="flex flex-col gap-3">
+          <h2 className="t-heading mt-1 text-ink">{t("you.about")}</h2>
+          <ActionRow icon="bulb" title={t("you.about.title")} hint={t("you.about.hint")} onClick={() => router.push("/about")} />
+        </section>
       </div>
 
       {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}

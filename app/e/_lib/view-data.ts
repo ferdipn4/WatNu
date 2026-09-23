@@ -1,16 +1,14 @@
 /**
- * The read model behind My WatNu and Event detail. Tries the real API
- * (`/api/events`, `/api/organizers`) first; if it isn't configured yet (or
- * the request fails) falls back to `lib/fixtures.ts` so both screens still
- * render the full design — end time, "Translated from Dutch", walking
- * distance, promos — none of which the current API columns carry yet.
+ * The read model behind every screen. Each page asks for the slice it shows (Home from this
+ * week's Monday, My WatNu from today, a profile for one organizer, the detail screen for one
+ * event) so nothing ever loads the whole events table. The real API comes first; when it isn't
+ * configured or fails, `lib/fixtures.ts` stands in so every screen still renders the design.
  *
- * Server-only: it calls `app/_lib/api-client.ts`, which reads request
- * headers. Call it from a Server Component page and pass the plain
- * `ViewEvent` / `ViewOrganizer` results down as props.
+ * Server-only: it calls `app/_lib/api-client.ts`, which reads request headers. Call it from a
+ * Server Component page and pass the plain `ViewEvent` / `ViewOrganizer` results down as props.
  */
-import { fetchEvents, fetchOrganizer, fetchOrganizers } from "@/app/_lib/api-client";
-import type { ApiEvent, ApiOrganizer } from "@/app/_lib/types";
+import { fetchEvent, fetchEvents, fetchOrganizer, fetchOrganizers, type EventsQuery } from "@/app/_lib/api-client";
+import { mapApiEvent, mapApiOrganizer, type ViewEvent, type ViewOrganizer } from "@/app/_lib/view-model";
 import {
   FIXTURE_EVENTS,
   FIXTURE_ORGANIZERS,
@@ -18,102 +16,9 @@ import {
   type FixtureEvent,
   type FixtureOrganizer,
 } from "@/lib/fixtures";
-import { getDemoPromoForEvent } from "@/lib/promos";
-import type { OrganizerType } from "@/lib/schemas";
-import { EVENT_CATEGORIES, type EventCategory } from "@/lib/types";
 import { demoPosterMarker } from "./demo-posters";
 
-export type ViewPromo = { label: string; code: string };
-
-export type ViewEvent = {
-  id: string;
-  title: string;
-  description: string;
-  /** ISO instant */
-  start: string;
-  /** ISO instant, when known */
-  end?: string;
-  location: string;
-  address?: string;
-  walkFromStation?: string;
-  category: EventCategory;
-  price: number;
-  newcomers: boolean;
-  /** an image url, or a `demoPosterMarker(...)` value for fixture events — see demo-posters.tsx */
-  image?: string;
-  /** the registration link (`source_url`), when the organizer set one */
-  signupUrl?: string;
-  organizerSlug: string | null;
-  organizerName: string;
-  organizerType: OrganizerType;
-  sourceLanguage: "nl" | "en";
-  promo?: ViewPromo;
-};
-
-export type ViewOrganizer = {
-  slug: string;
-  name: string;
-  type: OrganizerType;
-  category: EventCategory;
-  instagram?: string;
-  description?: string;
-  address?: string;
-  logo?: string;
-  /** whether the organizer shows their stats (views, saves, followers) to everyone */
-  statsPublic: boolean;
-  upcomingCount: number;
-};
-
-const CATEGORY_SET = new Set<string>(EVENT_CATEGORIES);
-function asCategory(value: string | null | undefined): EventCategory {
-  return value && CATEGORY_SET.has(value) ? (value as EventCategory) : "Social";
-}
-
-const ORG_TYPE_SET = new Set<OrganizerType>(["association", "cafe", "club", "venue"]);
-function asOrgType(value: string | null | undefined): OrganizerType {
-  return value && ORG_TYPE_SET.has(value as OrganizerType) ? (value as OrganizerType) : "association";
-}
-
-function mapApiEvent(event: ApiEvent, organizersBySlug: Map<string, ApiOrganizer>): ViewEvent {
-  const organizer = event.organizer_slug ? organizersBySlug.get(event.organizer_slug) : undefined;
-  return {
-    id: event.id,
-    title: event.title,
-    description: event.description ?? "",
-    start: event.start,
-    end: event.end ?? undefined,
-    location: event.location_name ?? event.address ?? "Location to be announced",
-    address: event.address ?? undefined,
-    category: asCategory(event.category),
-    price: Number(event.price_eur ?? 0),
-    newcomers: event.newcomer_friendly,
-    image: event.image_file ?? undefined,
-    signupUrl: event.source_url ?? undefined,
-    organizerSlug: event.organizer_slug,
-    organizerName: event.organizer_name ?? organizer?.name ?? "Organizer",
-    organizerType: asOrgType(organizer?.type),
-    // The API doesn't carry the poster's original language yet, so there is
-    // nothing to translate a caption from — see design/README.md's AI
-    // provenance rule: never show a note the data can't back up.
-    sourceLanguage: "en",
-    promo: getDemoPromoForEvent(event.id) ?? undefined,
-  };
-}
-
-function mapApiOrganizer(organizer: ApiOrganizer, upcomingCount: number): ViewOrganizer {
-  return {
-    slug: organizer.slug,
-    name: organizer.name,
-    type: asOrgType(organizer.type),
-    category: asCategory(organizer.category),
-    instagram: organizer.instagram_handle ?? undefined,
-    description: organizer.description ?? undefined,
-    address: organizer.address ?? undefined,
-    logo: organizer.logo_file ?? undefined,
-    statsPublic: organizer.stats_public === true,
-    upcomingCount,
-  };
-}
+export type { ViewEvent, ViewOrganizer, ViewPromo } from "@/app/_lib/view-model";
 
 function parseLocalDateTime(date: string, time: string): Date {
   const [y, m, d] = date.split("-").map(Number);
@@ -156,13 +61,28 @@ function mapFixtureEvent(event: FixtureEvent): ViewEvent {
   };
 }
 
+/** The same filters as GET /api/events, applied to the fixtures. */
+function matchesQuery(query: EventsQuery): (event: ViewEvent) => boolean {
+  const from = query.from ? new Date(query.from).getTime() : null;
+  const to = query.to ? new Date(query.to).getTime() : null;
+  const ids = query.ids ? new Set(query.ids) : null;
+  return (event) => {
+    const start = new Date(event.start).getTime();
+    if (from !== null && start < from) return false;
+    if (to !== null && start > to) return false;
+    if (query.organizer && event.organizerSlug !== query.organizer) return false;
+    if (ids && !ids.has(event.id)) return false;
+    return true;
+  };
+}
+
 function fixtureUpcomingCount(organizer: FixtureOrganizer, now: number): number {
   return FIXTURE_EVENTS.filter(
     (e) => e.organizerId === organizer.id && fixtureEventDates(e).start.getTime() > now,
   ).length;
 }
 
-function mapFixtureOrganizer(organizer: FixtureOrganizer, now: number): ViewOrganizer {
+function mapFixtureOrganizer(organizer: FixtureOrganizer, withCount = false): ViewOrganizer {
   return {
     slug: organizer.slug,
     name: organizer.name,
@@ -171,60 +91,57 @@ function mapFixtureOrganizer(organizer: FixtureOrganizer, now: number): ViewOrga
     instagram: organizer.instagram,
     description: organizer.description,
     statsPublic: false,
-    upcomingCount: fixtureUpcomingCount(organizer, now),
+    upcomingCount: withCount ? fixtureUpcomingCount(organizer, Date.now()) : undefined,
   };
 }
 
-/** All events, real API first, `lib/fixtures.ts` as the fallback. */
-export async function getViewEvents(): Promise<ViewEvent[]> {
+/** Events matching `query` (by default all of them), in start order. */
+export async function getViewEvents(query: EventsQuery = {}): Promise<ViewEvent[]> {
   try {
-    const [events, organizers] = await Promise.all([fetchEvents(), fetchOrganizers()]);
-    if (events.length === 0) throw new Error("No events from the API yet.");
-    const bySlug = new Map(organizers.map((o) => [o.slug, o] as const));
-    return events.map((e) => mapApiEvent(e, bySlug));
+    return (await fetchEvents(query)).map((event) => mapApiEvent(event));
   } catch {
-    return FIXTURE_EVENTS.map(mapFixtureEvent);
+    return FIXTURE_EVENTS.map(mapFixtureEvent).filter(matchesQuery(query));
   }
 }
 
-/** One organizer's upcoming events in date order — the profile's "Upcoming" list. */
-export function upcomingEventsFor(events: ViewEvent[], organizerSlug: string): ViewEvent[] {
-  const now = Date.now();
-  return events
-    .filter((event) => event.organizerSlug === organizerSlug && new Date(event.start).getTime() >= now)
-    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-}
-
 export async function getViewEventById(id: string): Promise<ViewEvent | null> {
-  const events = await getViewEvents();
-  return events.find((e) => e.id === id) ?? null;
+  try {
+    const event = await fetchEvent(id);
+    return event ? mapApiEvent(event) : null;
+  } catch {
+    const fixture = FIXTURE_EVENTS.find((e) => e.id === id);
+    return fixture ? mapFixtureEvent(fixture) : null;
+  }
 }
 
-/** All organizers with their upcoming-event count, real API first, fixtures as the fallback. */
+/** The directory: every organizer, without their events. */
 export async function getViewOrganizers(): Promise<ViewOrganizer[]> {
   try {
-    const [organizers, events] = await Promise.all([fetchOrganizers(), fetchEvents()]);
-    if (organizers.length === 0) throw new Error("No organizers from the API yet.");
-    const now = Date.now();
-    return organizers.map((o) => {
-      const upcomingCount = events.filter(
-        (e) => e.organizer_slug === o.slug && new Date(e.start).getTime() > now,
-      ).length;
-      return mapApiOrganizer(o, upcomingCount);
-    });
+    return (await fetchOrganizers()).map((organizer) => mapApiOrganizer(organizer));
   } catch {
+    return FIXTURE_ORGANIZERS.map((organizer) => mapFixtureOrganizer(organizer));
+  }
+}
+
+/** One organizer with their upcoming events, in start order — the profile's read. */
+export async function getViewOrganizerProfile(slug: string): Promise<{ organizer: ViewOrganizer; events: ViewEvent[] } | null> {
+  try {
+    const result = await fetchOrganizer(slug);
+    if (!result) return null;
+    const organizer = mapApiOrganizer(result.organizer, result.upcoming_events.length);
+    const events = result.upcoming_events.map((event) => mapApiEvent(event, result.organizer));
+    return { organizer, events };
+  } catch {
+    const organizer = FIXTURE_ORGANIZERS.find((o) => o.slug === slug);
+    if (!organizer) return null;
     const now = Date.now();
-    return FIXTURE_ORGANIZERS.map((o) => mapFixtureOrganizer(o, now));
+    const events = FIXTURE_EVENTS.filter((e) => e.organizerId === organizer.id && fixtureEventDates(e).start.getTime() > now)
+      .map(mapFixtureEvent)
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    return { organizer: mapFixtureOrganizer(organizer, true), events };
   }
 }
 
 export async function getViewOrganizerBySlug(slug: string): Promise<ViewOrganizer | null> {
-  try {
-    const { organizer, upcoming_events } = await fetchOrganizer(slug);
-    return mapApiOrganizer(organizer, upcoming_events.length);
-  } catch {
-    const organizer = FIXTURE_ORGANIZERS.find((o) => o.slug === slug);
-    if (!organizer) return null;
-    return mapFixtureOrganizer(organizer, Date.now());
-  }
+  return (await getViewOrganizerProfile(slug))?.organizer ?? null;
 }

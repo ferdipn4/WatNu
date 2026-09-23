@@ -121,13 +121,24 @@ plain-code recommendation of the quietest evening that week.
 
 ### `GET /api/events`
 
-Optional query params: `category`, `from`, `to`, `free=true`, `organizer`.
-Ordered by `start`, with the organizer name joined in as `organizer_name`.
+Optional query params: `category`, `from`, `to`, `free=true`, `organizer`,
+`ids` (up to 100 comma-separated uuids). Ordered by `start`, with the
+organizer's name and type joined in as `organizer_name` / `organizer_type`.
+Every screen asks for its slice (Home from this week's Monday, My WatNu from
+today plus its saved ids), never the whole table.
 
 ```bash
 curl.exe "http://localhost:3000/api/events"
 curl.exe "http://localhost:3000/api/events?category=Party&free=true"
 curl.exe "http://localhost:3000/api/events?from=2026-10-01T00:00:00%2B02:00&to=2026-10-31T23:59:59%2B01:00&organizer=de-kroeg"
+```
+
+### `GET /api/events/[id]`
+
+One event with its organizer joined in; 404 when there is none.
+
+```bash
+curl.exe "http://localhost:3000/api/events/<uuid>"
 ```
 
 ### `POST /api/events`

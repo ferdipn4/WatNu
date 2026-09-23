@@ -43,17 +43,17 @@ export const ORGANIZER_COLUMNS =
 export const EVENT_COLUMNS =
   "id, title, organizer_slug, start, end, location_name, address, category, price_eur, description, source_url, newcomer_friendly, image_file, created_at";
 
-export const EVENT_COLUMNS_WITH_ORGANIZER = `${EVENT_COLUMNS}, organizers ( name )`;
+export const EVENT_COLUMNS_WITH_ORGANIZER = `${EVENT_COLUMNS}, organizers ( name, type )`;
 
-type EmbeddedOrganizer = { name: string } | { name: string }[] | null;
+type EmbeddedOrganizer = { name: string; type: string | null } | { name: string; type: string | null }[] | null;
 
-/** PostgREST nests the embedded organizer; expose it as a flat field. */
+/** PostgREST nests the embedded organizer; expose its name and type as flat fields. */
 export function flattenOrganizer<T extends { organizers?: EmbeddedOrganizer }>(
   row: T,
-): Omit<T, "organizers"> & { organizer_name: string | null } {
+): Omit<T, "organizers"> & { organizer_name: string | null; organizer_type: string | null } {
   const { organizers, ...rest } = row;
   const organizer = Array.isArray(organizers) ? organizers[0] : organizers;
-  return { ...rest, organizer_name: organizer?.name ?? null };
+  return { ...rest, organizer_name: organizer?.name ?? null, organizer_type: organizer?.type ?? null };
 }
 
 const SUPABASE_UNCONFIGURED =

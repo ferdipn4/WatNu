@@ -13,13 +13,24 @@ import { isOff, isSoon } from "@/lib/features";
 import { DayHeader } from "@/app/_components/DayHeader";
 import { ScreenHeader } from "@/app/_components/ScreenHeader";
 import { TabScreen } from "@/app/_components/TabScreen";
+import { getJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
 import { getDisplayName, getFollowedOrganizers, getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
+import type { ApiEvent } from "@/app/_lib/types";
 import { useToast } from "@/app/_lib/use-toast";
+import { mapApiEvent, type ViewEvent, type ViewOrganizer } from "@/app/_lib/view-model";
 import { dayHeaderLabel, dayKey, formatTime } from "@/app/e/_lib/format";
-import type { ViewEvent, ViewOrganizer } from "@/app/e/_lib/view-data";
 
 type DayGroup = { date: Date; events: ViewEvent[] };
+
+/** GET /api/events takes at most this many ids; the most recently saved ones win. */
+const MAX_PAST_IDS = 100;
+
+function startOfToday(): Date {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
 
 /** Groups an already sorted list by local calendar day, keeping the order. */
 function groupByDay(events: ViewEvent[]): DayGroup[] {
@@ -34,6 +45,7 @@ function groupByDay(events: ViewEvent[]): DayGroup[] {
   return Array.from(byKey.values());
 }
 
+/** `events` holds today's and future events (the server loads from today); the phone's saved past events are fetched here by id. */
 export function MineScreen({ events, organizers }: { events: ViewEvent[]; organizers: ViewOrganizer[] }) {
   const router = useRouter();
   const t = useT();
@@ -41,6 +53,7 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
   const [followedSlugs, setFollowedSlugs] = useState<string[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [name, setName] = useState("");
+  const [pastSaved, setPastSaved] = useState<ViewEvent[]>([]);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of client-only state after mount */
@@ -49,6 +62,25 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
     setName(getDisplayName());
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
+
+  // Only this phone knows which events it saved, so it asks for exactly those, limited to the past.
+  useEffect(() => {
+    const ids = savedIds.slice(-MAX_PAST_IDS);
+    if (ids.length === 0) return;
+    let active = true;
+    const cutoff = new Date(startOfToday().getTime() - 1).toISOString();
+    const params = new URLSearchParams({ ids: ids.join(","), to: cutoff });
+    getJson<{ events: ApiEvent[] }>(`/api/events?${params.toString()}`)
+      .then(({ events: rows }) => {
+        if (active) setPastSaved(rows.map((row) => mapApiEvent(row)));
+      })
+      .catch(() => {
+        // Without the API (fixtures only) there is no past to show; the upcoming list still works.
+      });
+    return () => {
+      active = false;
+    };
+  }, [savedIds]);
 
   function handleToggleSave(id: string, next: boolean) {
     setSavedIds((prev) => (next ? [...prev, id] : prev.filter((existing) => existing !== id)));
@@ -72,11 +104,11 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
         return (isSaved || isFromFollowed) && dayKey(new Date(event.start)) >= today;
       })
       .sort(byStart);
-    const past = events
+    const past = pastSaved
       .filter((event) => savedIds.includes(event.id) && dayKey(new Date(event.start)) < today)
       .sort((a, b) => byStart(b, a));
     return { upcoming, past };
-  }, [events, savedIds, followedSlugs]);
+  }, [events, pastSaved, savedIds, followedSlugs]);
 
   const groups = useMemo(() => groupByDay(upcoming), [upcoming]);
   const pastGroups = useMemo(() => groupByDay(past), [past]);

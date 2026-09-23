@@ -205,7 +205,7 @@ export function EventDetailScreen({
               <span className="t-body-strong block truncate text-ink">{event.organizerName}</span>
               <span className="t-meta block truncate text-ink-muted">
                 {t.orgType(event.organizerType)}
-                {organizer ? ` · ${t.n("event.upcoming", organizer.upcomingCount)}` : null}
+                {organizer?.upcomingCount !== undefined ? ` · ${t.n("event.upcoming", organizer.upcomingCount)}` : null}
               </span>
             </span>
             <Icon name="chevron-right" className="flex-none text-ink-muted" />

@@ -213,6 +213,8 @@ export const checkEventSchema = z.object({
 
 export type CheckEventInput = z.infer<typeof checkEventSchema>;
 
+const MAX_IDS_PER_QUERY = 100;
+
 export const eventQuerySchema = z.object({
   category: eventCategorySchema.optional(),
   from: isoDateTime.optional(),
@@ -222,6 +224,14 @@ export const eventQuerySchema = z.object({
     .optional()
     .transform((value) => value === "true"),
   organizer: z.string().trim().min(1).optional(),
+  /** comma-separated event uuids — how My WatNu fetches the events a phone saved, past ones included */
+  ids: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value.split(",").map((id) => id.trim()).filter(Boolean) : undefined))
+    .refine((ids) => !ids || (ids.length <= MAX_IDS_PER_QUERY && ids.every((id) => z.string().uuid().safeParse(id).success)), {
+      message: `ids must be up to ${MAX_IDS_PER_QUERY} comma-separated uuids.`,
+    }),
 });
 
 /**

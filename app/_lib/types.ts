@@ -18,7 +18,9 @@ export type ApiEvent = {
   newcomer_friendly: boolean;
   image_file: string | null;
   created_at: string;
+  /** joined from `organizers` by GET /api/events and GET /api/events/[id]; absent on an organizer's own event list */
   organizer_name?: string | null;
+  organizer_type?: string | null;
 };
 
 export type ApiOrganizer = {

@@ -1,8 +1,7 @@
-// app/page.tsx — "/" Home ("This week"). Shares the same read model as
-// My WatNu and Event detail (`getViewEvents` in app/e/_lib/view-data.ts):
-// real API data first, `lib/fixtures.ts` as the fallback when the API isn't
-// configured or has no events yet. Using the same source everywhere keeps
-// event ids consistent, so a card tapped here always resolves on /e/[id].
+// app/page.tsx — "/" Home ("This week"). Loads only events from this week's Monday on (the
+// screen pages forward week by week from there); the same read model as My WatNu and Event
+// detail (`getViewEvents` in app/e/_lib/view-data.ts) keeps ids consistent across screens.
+import { amsterdamWeekRange } from "@/lib/datetime";
 import { getViewEvents, type ViewEvent } from "@/app/e/_lib/view-data";
 import { HomeScreen, type HomeEvent } from "./_components/HomeScreen";
 
@@ -38,6 +37,6 @@ function toHomeEvent(event: ViewEvent): HomeEvent {
 }
 
 export default async function Home() {
-  const events = await getViewEvents();
+  const events = await getViewEvents({ from: amsterdamWeekRange(new Date()).start.toISOString() });
   return <HomeScreen events={events.map(toHomeEvent)} />;
 }

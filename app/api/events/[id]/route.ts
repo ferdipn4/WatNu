@@ -7,6 +7,7 @@ import {
   handleRouteError,
   isRowLevelSecurityError,
   readJsonBody,
+  requireSupabaseReadClient,
   requireUser,
 } from "@/lib/api";
 import { updateEventSchema, validationError } from "@/lib/schemas";
@@ -14,6 +15,38 @@ import { updateEventSchema, validationError } from "@/lib/schemas";
 export const runtime = "nodejs";
 
 const idParamSchema = z.string().uuid();
+
+/** One event with its organizer's name and type — the detail screen's read. */
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const idResult = idParamSchema.safeParse(id);
+    if (!idResult.success) {
+      throw new HttpError(404, `No event with id "${id}".`);
+    }
+
+    const supabase = requireSupabaseReadClient();
+    const { data, error } = await supabase
+      .from("events")
+      .select(EVENT_COLUMNS_WITH_ORGANIZER)
+      .eq("id", idResult.data)
+      .maybeSingle();
+
+    if (error) {
+      throw new HttpError(502, `Could not read the event: ${error.message}`);
+    }
+    if (!data) {
+      throw new HttpError(404, `No event with id "${idResult.data}".`);
+    }
+
+    return NextResponse.json({ event: flattenOrganizer(data) });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
 
 /** Updates one of the signed-in organizer's events. Someone else's event is invisible to the update and comes back as 404. */
 export async function PATCH(

@@ -27,13 +27,14 @@ export async function GET(request: NextRequest) {
       to: params.get("to") ?? undefined,
       free: params.get("free") ?? undefined,
       organizer: params.get("organizer") ?? undefined,
+      ids: params.get("ids") ?? undefined,
     });
 
     if (!parsed.success) {
       return NextResponse.json(validationError(parsed.error), { status: 400 });
     }
 
-    const { category, from, to, free, organizer } = parsed.data;
+    const { category, from, to, free, organizer, ids } = parsed.data;
     const supabase = requireSupabaseReadClient();
 
     let query = supabase
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
     if (to) query = query.lte("start", new Date(to).toISOString());
     if (free) query = query.eq("price_eur", 0);
     if (organizer) query = query.eq("organizer_slug", organizer);
+    if (ids) query = query.in("id", ids);
 
     const { data, error } = await query;
     if (error) {

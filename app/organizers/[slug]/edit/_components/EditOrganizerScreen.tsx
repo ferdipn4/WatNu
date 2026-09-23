@@ -14,6 +14,7 @@ import { useAuth } from "@/app/_lib/auth";
 import { signInHref } from "@/app/_lib/auth-paths";
 import { patchJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
+import { isDataUrl, removeMedia, uploadDataUrl } from "@/app/_lib/media";
 import { useToast } from "@/app/_lib/use-toast";
 import type { ViewOrganizer } from "@/app/e/_lib/view-data";
 import { resizeImageFile } from "@/app/new/_lib/resize-image";
@@ -112,12 +113,15 @@ export function EditOrganizerScreen({ slug, organizer }: { slug: string; organiz
 
   async function save() {
     if (!form || !initial) return;
-    const body = changesBetween(initial, form);
-    if (Object.keys(body).length === 0) return;
+    if (Object.keys(changesBetween(initial, form)).length === 0) return;
     setSaving(true);
     setError(null);
     try {
+      // A newly picked logo is still a data URL: upload it, then store its public URL.
+      const logo = isDataUrl(form.logo) ? await uploadDataUrl("logos", form.logo) : form.logo;
+      const body = changesBetween(initial, { ...form, logo });
       await patchJson(`/api/organizers/${encodeURIComponent(slug)}`, body);
+      if (initial.logo && logo !== initial.logo) void removeMedia(initial.logo);
       router.push(`${profileUrl}?updated=1`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("edit.error"));

@@ -54,6 +54,15 @@ const optionalText = z
   .nullish()
   .transform((value) => (value && value.trim() !== "" ? value.trim() : null));
 
+/** A public http(s) URL or `null`: images live in Supabase Storage, never as `data:` URLs inside a row. */
+const optionalHttpUrl = z
+  .string()
+  .nullish()
+  .transform((value) => (value && value.trim() !== "" ? value.trim() : null))
+  .refine((value) => value === null || /^https?:\/\/\S+$/i.test(value), {
+    message: "Expected an http(s) URL or null (upload the image to Storage first).",
+  });
+
 /** A URL when present, `null` when absent — never required, never invented. */
 const optionalUrl = z
   .string()
@@ -81,7 +90,10 @@ export const draftEventSchema = z
     missing_fields: z.array(z.string()).default([]),
     confidence: z.coerce.number().min(0).max(1).default(0.5),
   })
-  .transform((draft) => {
+  .transform((rawDraft) => {
+    // `end` and `signup_url` are optional by design: the model still tends to list them, which
+    // would turn every poster without an end time amber for the wrong reason.
+    const draft = { ...rawDraft, missing_fields: rawDraft.missing_fields.filter((field) => field !== "end" && field !== "signup_url") };
     // Defense in depth: enforce the "never guess a date" rule even if the
     // model forgets to flag it itself.
     if (!draft.start) {
@@ -154,7 +166,7 @@ export const createEventSchema = z
     source_url: z.string().url().nullish().default(null),
     organizer_slug: optionalText,
     newcomer_friendly: z.boolean().default(false),
-    image_file: optionalText,
+    image_file: optionalHttpUrl,
   })
   .refine(endAfterStart, END_AFTER_START);
 
@@ -182,7 +194,7 @@ export const updateEventSchema = z
     source_url: optionalUrl.optional(),
     organizer_slug: optionalText.optional(),
     newcomer_friendly: z.boolean().optional(),
-    image_file: optionalText.optional(),
+    image_file: optionalHttpUrl.optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "Provide at least one field to update.",
@@ -235,7 +247,7 @@ export const updateOrganizerSchema = z
     description: optionalText.optional(),
     instagram_handle: optionalText.optional(),
     address: optionalText.optional(),
-    logo_file: optionalText.optional(),
+    logo_file: optionalHttpUrl.optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "Provide at least one field to update.",

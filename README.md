@@ -43,6 +43,14 @@ organizer and inserts, updates or deletes events under its slug. The write
 routes below and `POST /api/ingest` need the signed-in user's access token in
 an `Authorization: Bearer <token>` header; the app adds it automatically.
 
+### Images
+
+Posters and logos live in the public Storage bucket `media` (created by
+`supabase/schema.sql`: `posters/<uuid>.jpg`, `logos/<uuid>.png`, 5 MB and
+image types only). The browser uploads them directly with the organizer's
+session (`app/_lib/media.ts`) and the row stores the public URL — `image_file`
+and `logo_file` must be http(s) URLs, the API rejects `data:` URLs.
+
 ## API
 
 All dates are handled in the `Europe/Amsterdam` timezone. The API category

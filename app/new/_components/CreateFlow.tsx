@@ -11,6 +11,7 @@ import { useAuth } from "@/app/_lib/auth";
 import { signInHref } from "@/app/_lib/auth-paths";
 import { postJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
+import { uploadDataUrl } from "@/app/_lib/media";
 import { useToast } from "@/app/_lib/use-toast";
 import { toDateInputValue, toTimeInputValue } from "../_lib/datetime";
 import { blankForm, draftToForm, formToCheckPayload, formToCreatePayload, isRequiredFilled, isValidOptionalUrl } from "../_lib/form";
@@ -187,7 +188,9 @@ export function CreateFlow() {
     setPublishing(true);
     setPublishError(null);
     try {
-      const result = await postJson<{ event: { id: string } }>("/api/events", formToCreatePayload(form, organizer.slug, posterImage));
+      // The poster goes to Storage only now, at publish time, so abandoned drafts leave no files behind.
+      const imageUrl = posterImage ? await uploadDataUrl("posters", posterImage) : null;
+      const result = await postJson<{ event: { id: string } }>("/api/events", formToCreatePayload(form, organizer.slug, imageUrl));
       // After publishing: Home, scrolled to the event, with the one maas toast (design/screens.md §3).
       router.push(`/?published=${encodeURIComponent(result.event.id)}`);
     } catch (error) {

@@ -119,3 +119,33 @@ create policy "members delete their events"
   for delete
   to authenticated
   using (is_organizer_member(organizer_slug));
+
+-- Images live in Storage, not in the rows: one public bucket, posters/<uuid>.jpg and logos/<uuid>.png.
+-- The browser uploads with the organizer's session (app/_lib/media.ts); the row keeps the public URL.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('media', 'media', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "media is public" on storage.objects;
+create policy "media is public"
+  on storage.objects
+  for select
+  to anon, authenticated
+  using (bucket_id = 'media');
+
+drop policy if exists "organizers upload media" on storage.objects;
+create policy "organizers upload media"
+  on storage.objects
+  for insert
+  to authenticated
+  with check (bucket_id = 'media');
+
+drop policy if exists "uploaders remove their media" on storage.objects;
+create policy "uploaders remove their media"
+  on storage.objects
+  for delete
+  to authenticated
+  using (bucket_id = 'media' and owner_id = auth.uid()::text);

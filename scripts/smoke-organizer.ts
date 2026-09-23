@@ -113,6 +113,19 @@ async function main(): Promise<void> {
     record("publish under another slug is refused", foreign.status === 403, `status ${foreign.status} ${errorOf(foreign.json)}`);
   }
 
+  // 8. Storage: organizers upload media, everyone reads it, uploaders remove their own files.
+  const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+  const mediaPath = `posters/smoke-${Date.now()}.png`;
+  const upload = await supabase.storage.from("media").upload(mediaPath, onePixelPng, { contentType: "image/png" });
+  record("upload media", !upload.error, upload.error?.message ?? mediaPath);
+  if (!upload.error) {
+    const publicUrl = supabase.storage.from("media").getPublicUrl(mediaPath).data.publicUrl;
+    const read = await fetch(publicUrl);
+    record("media is public", read.status === 200, `status ${read.status}`);
+    const removed = await supabase.storage.from("media").remove([mediaPath]);
+    record("remove own media", !removed.error && (removed.data?.length ?? 0) === 1, removed.error?.message ?? `${removed.data?.length ?? 0} removed`);
+  }
+
   // Local scope only: the default (global) sign-out would revoke every session of this user, including a browser's.
   await supabase.auth.signOut({ scope: "local" });
 

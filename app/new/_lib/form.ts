@@ -46,11 +46,11 @@ export function formToCheckPayload(form: FormState) {
   };
 }
 
-/** Body for `POST /api/events` (`createEventSchema`). */
+/** Body for `POST /api/events` (`createEventSchema`). `imageUrl` is the poster's public Storage URL (app/_lib/media.ts), never a data URL. */
 export function formToCreatePayload(
   form: FormState,
   organizerSlug: string | null,
-  imageDataUrl: string | null,
+  imageUrl: string | null,
 ) {
   return {
     title: form.title.trim(),
@@ -61,13 +61,10 @@ export function formToCreatePayload(
     category: form.category,
     price_eur: Number(form.price_eur) || 0,
     description: form.description.trim() || null,
-    // There is no dedicated image-upload endpoint yet; the resized image is
-    // small enough to store as a data URL directly in the `image_file` text
-    // column, which every reader already renders with a plain `<img src>`.
     source_url: form.signup_url.trim() || null,
     organizer_slug: organizerSlug,
     newcomer_friendly: form.newcomer_friendly,
-    image_file: imageDataUrl || null,
+    image_file: imageUrl || null,
   };
 }
 

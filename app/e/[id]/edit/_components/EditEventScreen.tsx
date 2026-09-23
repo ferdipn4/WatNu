@@ -10,6 +10,7 @@ import { useAuth } from "@/app/_lib/auth";
 import { signInHref } from "@/app/_lib/auth-paths";
 import { deleteRequest, patchJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
+import { isDataUrl, removeMedia, uploadDataUrl } from "@/app/_lib/media";
 import { useToast } from "@/app/_lib/use-toast";
 import type { ViewEvent } from "@/app/e/_lib/view-data";
 import { ReviewStep } from "@/app/new/_components/ReviewStep";
@@ -107,12 +108,15 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
 
   async function save() {
     if (!form || !initial) return;
-    const body = changesBetween(initial, form, initialImage, posterImage);
-    if (Object.keys(body).length === 0) return;
+    if (Object.keys(changesBetween(initial, form, initialImage, posterImage)).length === 0) return;
     setSaving(true);
     setError(null);
     try {
+      // A newly picked poster is still a data URL: upload it, then store its public URL.
+      const image = isDataUrl(posterImage) ? await uploadDataUrl("posters", posterImage) : posterImage;
+      const body = changesBetween(initial, form, initialImage, image);
       await patchJson(`/api/events/${encodeURIComponent(id)}`, body);
+      if (initialImage && image !== initialImage) void removeMedia(initialImage);
       router.push(`${detailUrl}?updated=1`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("eventEdit.error"));
@@ -131,6 +135,7 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
     setError(null);
     try {
       await deleteRequest(`/api/events/${encodeURIComponent(id)}`);
+      void removeMedia(initialImage);
       router.push(event?.organizerSlug ? `/organizers/${event.organizerSlug}?deleted=1` : "/");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("eventEdit.deleteError"));

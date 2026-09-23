@@ -363,6 +363,16 @@ export const createOrganizerSchema = z.object({
 
 export type CreateOrganizerInput = z.infer<typeof createOrganizerSchema>;
 
+/** What a visitor can flag on an event ("This is wrong"). */
+export const REPORT_REASONS = ["wrong_time", "wrong_place", "cancelled", "gone", "other"] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+/** Body accepted by POST /api/events/[id]/reports. */
+export const reportSchema = z.object({
+  reason: z.enum(REPORT_REASONS),
+  message: optionalText.transform((value) => (value ? value.slice(0, 500) : null)),
+});
+
 /** Shape returned to clients for validation failures. */
 export function validationError(error: z.ZodError) {
   const flat = error.flatten();

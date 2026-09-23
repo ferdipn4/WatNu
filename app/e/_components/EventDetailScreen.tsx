@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Chip } from "@/components/ui/Chip";
 import { EventPoster } from "@/components/ui/EventPoster";
+import { Field } from "@/components/ui/Field";
 import { Icon, cx } from "@/components/ui/Icon";
 import { OrgLogo } from "@/components/ui/OrgLogo";
 import { Toast } from "@/components/ui/Toast";
@@ -14,6 +15,7 @@ import { isOff, isSoon } from "@/lib/features";
 import { expandOccurrences } from "@/lib/occurrences";
 import { TopBar } from "@/app/_components/TopBar";
 import { useAuth } from "@/app/_lib/auth";
+import { postJson } from "@/app/_lib/http";
 import { dateNames, useT } from "@/app/_lib/i18n";
 import { recordMetric } from "@/app/_lib/metrics";
 import { isEventSaved, toggleSavedEvent } from "@/app/_lib/store";
@@ -26,6 +28,10 @@ import { PromoSheet } from "./PromoSheet";
 
 /** "Every week" etc.: the badge on the hero image, the same marker the cards carry (a kicker above the title when there is no image). */
 const REPEAT_KICKER_KEYS = { weekly: "repeat.weekly", biweekly: "repeat.biweekly", monthly: "repeat.monthly" } as const;
+
+/** What a visitor can flag ("Something wrong?"); the same list as lib/schemas.ts REPORT_REASONS, kept here so the client bundle stays free of the server modules. */
+const REPORT_REASONS = ["wrong_time", "wrong_place", "cancelled", "gone", "other"] as const;
+type ReportReason = (typeof REPORT_REASONS)[number];
 
 /** "10% off with WatNu" → "10% off" — the short tag for the tags row; the promo card keeps the full label. */
 function promoTagLabel(label: string): string {
@@ -48,6 +54,12 @@ export function EventDetailScreen({
   const [saved, setSaved] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const viewRecorded = useRef(false);
+  // "Something wrong?": a reason, an optional note, one send per visit.
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<ReportReason | null>(null);
+  const [reportMessage, setReportMessage] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reported, setReported] = useState(false);
 
   // One view per visit for the organizer's stats — not when the organizer looks at their own event.
   useEffect(() => {
@@ -76,6 +88,21 @@ export function EventDetailScreen({
 
   function handleSaveToggle() {
     setSaved(toggleSavedEvent(event.id));
+  }
+
+  async function sendReport() {
+    if (!reportReason) return;
+    setReportBusy(true);
+    try {
+      await postJson(`/api/events/${event.id}/reports`, { reason: reportReason, message: reportMessage.trim() || null });
+      setReported(true);
+      setReportOpen(false);
+      show(t("report.done"), "done");
+    } catch {
+      show(t("report.error"), "info");
+    } finally {
+      setReportBusy(false);
+    }
   }
 
   async function handleShare() {
@@ -315,6 +342,33 @@ export function EventDetailScreen({
             <Icon name="chevron-right" className="flex-none text-accent" />
           </Card>
         ) : null}
+
+        {/* "Something wrong?" — anyone flags the event; its organizer and the admins see it and fix it. */}
+        {reported ? (
+          <p className="t-meta text-center text-ink-muted">{t("report.done")}</p>
+        ) : reportOpen ? (
+          <Card tone="sunken" className="flex! flex-col gap-3">
+            <h2 className="t-body-strong text-ink">{t("report.title")}</h2>
+            <div role="group" aria-label={t("report.title")} className="flex flex-wrap gap-2">
+              {REPORT_REASONS.map((reason) => (
+                <Chip key={reason} label={t(`report.reason.${reason}`)} selected={reportReason === reason} onClick={() => setReportReason(reason)} />
+              ))}
+            </div>
+            <Field kind="textarea" label={t("report.message")} value={reportMessage} onChange={setReportMessage} />
+            <div className="flex gap-2">
+              <Button size="sm" disabled={!reportReason || reportBusy} onClick={sendReport}>
+                {reportBusy ? t("report.sending") : t("report.send")}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setReportOpen(false)}>
+                {t("common.close")}
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <Button variant="ghost" icon="warning" className="self-center" onClick={() => setReportOpen(true)}>
+            {t("report.button")}
+          </Button>
+        )}
       </div>
 
       {sheetOpen ? <PromoSheet event={event} qrDataUrl={qrDataUrl} onClose={() => setSheetOpen(false)} /> : null}

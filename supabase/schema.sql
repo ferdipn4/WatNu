@@ -249,6 +249,41 @@ create policy "admins remove access requests"
   to authenticated
   using (is_admin());
 
+-- "This is wrong": anyone flags an event (wrong time or place, cancelled, gone). The organizer's
+-- members see the reports on their edit screen and resolve them; admins see all of them at /admin/reports.
+create table if not exists event_reports (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references events (id) on delete cascade,
+  reason text not null check (reason in ('wrong_time', 'wrong_place', 'cancelled', 'gone', 'other')),
+  message text check (char_length(message) <= 500),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists event_reports_event_id_idx on event_reports (event_id, created_at desc);
+
+alter table event_reports enable row level security;
+
+drop policy if exists "anyone may report an event" on event_reports;
+create policy "anyone may report an event"
+  on event_reports
+  for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "members and admins read reports" on event_reports;
+create policy "members and admins read reports"
+  on event_reports
+  for select
+  to authenticated
+  using (is_admin() or is_organizer_member((select e.organizer_slug from events e where e.id = event_id)));
+
+drop policy if exists "members and admins resolve reports" on event_reports;
+create policy "members and admins resolve reports"
+  on event_reports
+  for delete
+  to authenticated
+  using (is_admin() or is_organizer_member((select e.organizer_slug from events e where e.id = event_id)));
+
 -- Organizer stats: views, saves and follows, counted per day by the app (POST /api/metrics →
 -- record_metric). Nobody touches the table directly; the two definer functions below do. Only the
 -- organizer's members read the numbers (organizer_stats), unless the organizer sets stats_public.

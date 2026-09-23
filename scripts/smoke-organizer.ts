@@ -122,6 +122,18 @@ async function main(): Promise<void> {
     const anonAllowed = anonStats.status === 200 && (anonStats.json as { stats?: { public?: boolean } } | null)?.stats?.public === true;
     record("stats respect stats_public for strangers", anonStats.status === 403 || anonAllowed, `status ${anonStats.status}${anonAllowed ? " (public)" : ""}`);
 
+    // 6b2. "This is wrong": anyone reports, the organizer reads and resolves.
+    const reported = await api(null, "POST", `/api/events/${eventId}/reports`, { reason: "wrong_time", message: "Starts at 20:00, not 19:00." });
+    const reportId = (reported.json as { report?: { id: string } } | null)?.report?.id;
+    record("anyone reports an event", reported.status === 201 && Boolean(reportId), `status ${reported.status} ${errorOf(reported.json)}`);
+    const reports = await api(token, "GET", `/api/events/${eventId}/reports`);
+    const reportListed = ((reports.json as { reports?: { id: string }[] } | null)?.reports ?? []).some((r) => r.id === reportId);
+    record("organizer reads the reports", reports.status === 200 && reportListed, `status ${reports.status}`);
+    if (reportId) {
+      const resolved = await fetch(`${BASE_URL}/api/reports/${reportId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      record("organizer resolves a report", resolved.status === 204, `status ${resolved.status}`);
+    }
+
     const edited = await api(token, "PATCH", `/api/events/${eventId}`, { title: "Smoke test (edited)" });
     record("edit own event", edited.status === 200, `status ${edited.status} ${errorOf(edited.json)}`);
 

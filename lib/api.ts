@@ -112,6 +112,8 @@ export async function requireAdmin(request: Request): Promise<UserContext> {
 
 export const REQUEST_COLUMNS = "id, organization, contact_name, email, instagram_handle, message, status, created_at, decided_at";
 
+export const REPORT_COLUMNS = "id, event_id, reason, message, created_at";
+
 /** Postgres raises 42501 when a write fails a row level security policy. */
 export function isRowLevelSecurityError(error: { code?: string } | null): boolean {
   return error?.code === "42501";

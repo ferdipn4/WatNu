@@ -204,6 +204,7 @@ export function ProfileScreen() {
           <section className="flex flex-col gap-3">
             <h2 className="t-heading mt-1 text-ink">{t("you.admin")}</h2>
             <ActionRow icon="users" title={t("you.admin.requests")} hint={t("you.admin.requestsHint")} onClick={() => router.push("/admin/requests")} />
+            <ActionRow icon="warning" title={t("you.admin.reports")} hint={t("you.admin.reportsHint")} onClick={() => router.push("/admin/reports")} />
           </section>
         ) : null}
 

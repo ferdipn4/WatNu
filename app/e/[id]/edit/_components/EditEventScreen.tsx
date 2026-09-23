@@ -12,7 +12,7 @@ import { expandOccurrences } from "@/lib/occurrences";
 import { TopBar } from "@/app/_components/TopBar";
 import { useAuth } from "@/app/_lib/auth";
 import { signInHref } from "@/app/_lib/auth-paths";
-import { deleteRequest, patchJson } from "@/app/_lib/http";
+import { deleteRequest, getJson, patchJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
 import { isDataUrl, removeMedia, uploadDataUrl } from "@/app/_lib/media";
 import { useToast } from "@/app/_lib/use-toast";
@@ -28,6 +28,14 @@ const CONFIRM_MS = 4000;
 /** How far ahead the "Upcoming dates" list of a series looks, and how many dates it shows. */
 const UPCOMING_DATES_DAYS = 70;
 const MAX_UPCOMING_DATES = 8;
+/** A visitor's "this is wrong" on this event (GET /api/events/[id]/reports). */
+type EventReport = {
+  id: string;
+  reason: "wrong_time" | "wrong_place" | "cancelled" | "gone" | "other";
+  message: string | null;
+  created_at: string;
+};
+
 /** Nothing was read by the AI here, so no field is amber. */
 const NO_MISSING_FIELDS = new Set<string>();
 
@@ -97,6 +105,8 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
   // The dates of a series the organizer skipped; each Skip/Restore is saved at once, not with the form.
   const [skipped, setSkipped] = useState<string[]>(() => event?.skippedDates ?? []);
   const [dateBusy, setDateBusy] = useState<string | null>(null);
+  // Reports from visitors ("this is wrong"), read once the screen knows the account may see them.
+  const [reports, setReports] = useState<EventReport[]>([]);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -105,6 +115,31 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
     },
     [],
   );
+
+  useEffect(() => {
+    if (!ready || !user || !event || !canManage(event.organizerSlug ?? "")) return;
+    let active = true;
+    getJson<{ reports: EventReport[] }>(`/api/events/${encodeURIComponent(id)}/reports`)
+      .then(({ reports: rows }) => {
+        if (active) setReports(rows);
+      })
+      .catch(() => {
+        // Without the list the screen simply shows no reports section.
+      });
+    return () => {
+      active = false;
+    };
+  }, [ready, user, event, canManage, id]);
+
+  async function resolveReport(reportId: string) {
+    try {
+      await deleteRequest(`/api/reports/${reportId}`);
+      setReports((previous) => previous.filter((report) => report.id !== reportId));
+      show(t("eventEdit.reports.resolved"), "done");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t("eventEdit.error"));
+    }
+  }
 
   // The next dates of the series, from today: what "this week is cancelled" is done on.
   const upcomingDates = useMemo(() => {
@@ -257,6 +292,29 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
           onChangeImage={handleChangeImage}
           onSoon={showSoon}
         />
+
+        {reports.length > 0 ? (
+          <section className="mt-6 flex flex-col gap-2">
+            <h2 className="t-heading text-ink">{t("eventEdit.reports.title")}</h2>
+            <p className="t-meta text-ink-muted">{t("eventEdit.reports.hint")}</p>
+            <Card tight>
+              {reports.map((report, index) => (
+                <div key={report.id} className={cx("flex items-start justify-between gap-3 py-1.5", index > 0 && "border-t border-line")}>
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="flex items-center gap-2">
+                      <Chip size="sm" tone="warn" label={t(`report.reason.${report.reason}`)} />
+                      <span className="t-caption text-ink-muted">{formatShortDate(new Date(report.created_at), t.locale)}</span>
+                    </span>
+                    {report.message ? <span className="t-body text-ink">{report.message}</span> : null}
+                  </span>
+                  <Button size="sm" variant="secondary" disabled={deleting} onClick={() => resolveReport(report.id)}>
+                    {t("eventEdit.reports.resolve")}
+                  </Button>
+                </div>
+              ))}
+            </Card>
+          </section>
+        ) : null}
 
         {upcomingDates.length > 0 ? (
           <section className="mt-6 flex flex-col gap-2">

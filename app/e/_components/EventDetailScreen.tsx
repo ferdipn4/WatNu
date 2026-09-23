@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -13,6 +13,7 @@ import { isOff, isSoon } from "@/lib/features";
 import { TopBar } from "@/app/_components/TopBar";
 import { useAuth } from "@/app/_lib/auth";
 import { useT } from "@/app/_lib/i18n";
+import { recordMetric } from "@/app/_lib/metrics";
 import { isEventSaved, toggleSavedEvent } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import { renderDemoPoster } from "../_lib/demo-posters";
@@ -41,6 +42,15 @@ export function EventDetailScreen({
   const { toast, show, showSoon } = useToast();
   const [saved, setSaved] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const viewRecorded = useRef(false);
+
+  // One view per visit for the organizer's stats — not when the organizer looks at their own event.
+  useEffect(() => {
+    if (!ready || viewRecorded.current) return;
+    if (event.organizerSlug && isMemberOf(event.organizerSlug)) return;
+    viewRecorded.current = true;
+    recordMetric("event_view", event.id);
+  }, [ready, event.id, event.organizerSlug, isMemberOf]);
 
   useEffect(() => {
     // One-time hydration of client-only localStorage state after mount.

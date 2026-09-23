@@ -18,7 +18,7 @@ export const features = {
   calendarExport: 'live', // "Add to calendar" (.ics) on the detail screen — pure client-side, no backend needed
   share: 'live',          // native share sheet / copy link
   promoCodes: 'soon',     // no backend and no organizer UI yet: a dashed "Add a promo code" on the event form; one demo event (lib/promos.ts) shows the working card + QR sheet
-  organizerStats: 'soon', // the stats card on the organizer profile
+  organizerStats: 'live', // the stats card on the organizer profile: views, saves, followers (daily_stats via /api/metrics), members only unless stats_public
   organizerProfile: 'live', // organizer accounts (Supabase Auth, demo accounts from scripts/create-demo-organizer.ts): sign in, Edit profile, publish — row level security only lets members write
   search: 'live',         // the organizer directory search
 } as const satisfies Record<string, FeatureStatus>;

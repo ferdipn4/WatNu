@@ -2,8 +2,10 @@
  * Tiny localStorage-backed helpers for client-only "My WatNu" state
  * (followed organizers, saved events). These are plain synchronous
  * functions, not hooks — call them from `useEffect`/event handlers and
- * keep your own React state for reactivity.
+ * keep your own React state for reactivity. Saves and follows also feed
+ * the organizer's stats (app/_lib/metrics.ts), anonymously.
  */
+import { recordMetric } from "./metrics";
 
 const FOLLOWED_ORGANIZERS_KEY = "watnu:followed-organizers";
 const SAVED_EVENTS_KEY = "watnu:saved-events";
@@ -52,7 +54,9 @@ export function isFollowingOrganizer(slug: string): boolean {
 }
 
 export function toggleFollowOrganizer(slug: string): boolean {
-  return toggleInList(FOLLOWED_ORGANIZERS_KEY, slug);
+  const following = toggleInList(FOLLOWED_ORGANIZERS_KEY, slug);
+  recordMetric(following ? "organizer_follow" : "organizer_unfollow", slug);
+  return following;
 }
 
 export function getSavedEventIds(): string[] {
@@ -64,7 +68,9 @@ export function isEventSaved(id: string): boolean {
 }
 
 export function toggleSavedEvent(id: string): boolean {
-  return toggleInList(SAVED_EVENTS_KEY, id);
+  const saved = toggleInList(SAVED_EVENTS_KEY, id);
+  recordMetric(saved ? "event_save" : "event_unsave", id);
+  return saved;
 }
 
 export function getDisplayName(): string {

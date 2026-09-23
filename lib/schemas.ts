@@ -248,12 +248,30 @@ export const updateOrganizerSchema = z
     instagram_handle: optionalText.optional(),
     address: optionalText.optional(),
     logo_file: optionalHttpUrl.optional(),
+    /** whether everyone may see the organizer's stats (views, saves, followers); members always do */
+    stats_public: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "Provide at least one field to update.",
   });
 
 export type UpdateOrganizerInput = z.infer<typeof updateOrganizerSchema>;
+
+/** The five things the app counts (POST /api/metrics). Views and saves are per event, follows per organizer. */
+export const METRIC_KINDS = [
+  "event_view",
+  "event_save",
+  "event_unsave",
+  "organizer_follow",
+  "organizer_unfollow",
+] as const;
+export type MetricKind = (typeof METRIC_KINDS)[number];
+
+/** Body accepted by POST /api/metrics: `id` is an event uuid or an organizer slug, depending on `kind`. */
+export const metricSchema = z.object({
+  kind: z.enum(METRIC_KINDS),
+  id: z.string().trim().min(1).max(200),
+});
 
 /** Shape returned to clients for validation failures. */
 export function validationError(error: z.ZodError) {

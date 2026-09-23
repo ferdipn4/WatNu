@@ -95,6 +95,16 @@ async function main(): Promise<void> {
   record("publish own event", created.status === 201 && Boolean(eventId), `status ${created.status} ${errorOf(created.json)}`);
 
   if (eventId) {
+    // 6b. Stats: anyone records a view, the organizer reads the numbers, strangers only once they are public.
+    const view = await api(null, "POST", "/api/metrics", { kind: "event_view", id: eventId });
+    record("record a view (anonymous)", view.status === 204, `status ${view.status} ${errorOf(view.json)}`);
+    const ownStats = await api(token, "GET", `/api/organizers/${encodeURIComponent(own)}/stats`);
+    const stats = (ownStats.json as { stats?: { views?: number; public?: boolean } } | null)?.stats;
+    record("organizer reads stats", ownStats.status === 200 && typeof stats?.views === "number" && stats.views >= 1, `status ${ownStats.status}, views ${stats?.views ?? "?"}`);
+    const anonStats = await api(null, "GET", `/api/organizers/${encodeURIComponent(own)}/stats`);
+    const anonAllowed = anonStats.status === 200 && (anonStats.json as { stats?: { public?: boolean } } | null)?.stats?.public === true;
+    record("stats respect stats_public for strangers", anonStats.status === 403 || anonAllowed, `status ${anonStats.status}${anonAllowed ? " (public)" : ""}`);
+
     const edited = await api(token, "PATCH", `/api/events/${eventId}`, { title: "Smoke test (edited)" });
     record("edit own event", edited.status === 200, `status ${edited.status} ${errorOf(edited.json)}`);
 

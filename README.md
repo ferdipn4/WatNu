@@ -157,6 +157,30 @@ Returns the organizer plus their upcoming events.
 curl.exe "http://localhost:3000/api/organizers/de-kroeg"
 ```
 
+### `POST /api/metrics`
+
+Counts one view, save or follow for the organizer's stats. Anyone may call it
+(students have no account); the database only ever moves a counter by one and
+checks that the event or organizer exists.
+
+```bash
+curl.exe -X POST http://localhost:3000/api/metrics   -H "Content-Type: application/json"   -d '{"kind":"event_view","id":"<event uuid>"}'
+```
+
+`kind` is one of `event_view`, `event_save`, `event_unsave`, `organizer_follow`,
+`organizer_unfollow`; `id` is the event uuid or the organizer slug.
+
+### `GET /api/organizers/[slug]/stats`
+
+Views and saves across the organizer's events in the last 30 days, followers
+all time. The organizer's own account always reads them (send the Bearer
+header); everyone else only once the organizer switched `stats_public` on in
+Edit profile (403 otherwise).
+
+```bash
+curl.exe -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/organizers/de-kroeg/stats
+```
+
 ### `GET /api/me`
 
 The signed-in user and the organizers they manage.
@@ -168,6 +192,13 @@ curl.exe -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/me
 `PATCH /api/organizers/[slug]`, `PATCH /api/events/[id]` and
 `DELETE /api/events/[id]` take the same header and only touch rows the signed-in
 organizer manages (404 for anyone else's).
+
+## Installing the app
+
+`app/manifest.ts`, `app/icon.tsx` and `app/apple-icon.tsx` make WatNu
+installable from the browser's "Add to Home Screen": a standalone window with
+the WatNu mark as its icon. No service worker yet, so it still needs a
+connection.
 
 ## Test assets
 

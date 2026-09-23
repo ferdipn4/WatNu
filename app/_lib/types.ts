@@ -31,5 +31,6 @@ export type ApiOrganizer = {
   instagram_handle: string | null;
   address: string | null;
   logo_file: string | null;
+  stats_public: boolean;
   created_at: string;
 };

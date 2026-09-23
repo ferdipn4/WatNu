@@ -10,7 +10,14 @@ import './globals.css';
 const display = Bricolage_Grotesque({ subsets: ['latin'], axes: ['opsz'], variable: '--font-bricolage', display: 'swap' });
 const sans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans', display: 'swap' });
 
-export const metadata: Metadata = { title: 'WatNu', description: "What's on in Maastricht this week." };
+export const metadata: Metadata = {
+  title: 'WatNu',
+  applicationName: 'WatNu',
+  description: "What's on in Maastricht this week.",
+  // app/manifest.ts, app/icon.tsx and app/apple-icon.tsx make it installable from the browser's "Add to Home Screen".
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, title: 'WatNu', statusBarStyle: 'default' },
+};
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,

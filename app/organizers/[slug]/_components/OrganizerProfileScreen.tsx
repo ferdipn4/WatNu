@@ -15,11 +15,24 @@ import { isOff, isSoon } from "@/lib/features";
 import { TopBar } from "@/app/_components/TopBar";
 import { useAuth } from "@/app/_lib/auth";
 import { signInHref } from "@/app/_lib/auth-paths";
+import { getJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
 import { getSavedEventIds, isFollowingOrganizer, toggleFollowOrganizer, toggleSavedEvent } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import { formatTime } from "@/app/e/_lib/format";
 import type { ViewEvent, ViewOrganizer } from "@/app/e/_lib/view-data";
+
+/** What GET /api/organizers/[slug]/stats returns (organizer_stats in supabase/schema.sql). */
+type OrganizerStats = { public: boolean; days: number; views: number; saves: number; followers: number; new_followers: number };
+
+function StatCell({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="min-w-0">
+      <div className="t-title tabular-nums text-ink">{value}</div>
+      <div className="t-meta truncate text-maas">{label}</div>
+    </div>
+  );
+}
 
 /**
  * The organizer profile: 52px top bar (back, share), header row, Follow, description, the
@@ -33,8 +46,27 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
   const { toast, show, showSoon } = useToast();
   const [following, setFollowing] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
+  const [stats, setStats] = useState<OrganizerStats | null>(null);
 
   const slug = organizer?.slug ?? null;
+  const isOrganizer = ready && slug !== null && isMemberOf(slug);
+  // The stats card: for the organizer's own account always, for everyone once they made it public.
+  const canSeeStats = ready && !isOff("organizerStats") && !isSoon("organizerStats") && (isOrganizer || organizer?.statsPublic === true);
+
+  useEffect(() => {
+    if (!slug || !canSeeStats) return;
+    let active = true;
+    getJson<{ stats: OrganizerStats }>(`/api/organizers/${encodeURIComponent(slug)}/stats`)
+      .then(({ stats: next }) => {
+        if (active) setStats(next);
+      })
+      .catch(() => {
+        if (active) setStats(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug, canSeeStats]);
 
   useEffect(() => {
     if (!slug) return;
@@ -115,7 +147,6 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
   // features.organizerProfile: live = sign in + edit, soon = the controls stay and show the toast, off = students only.
   const manageOff = isOff("organizerProfile");
   const manageSoon = isSoon("organizerProfile");
-  const isOrganizer = ready && isMemberOf(organizer.slug);
 
   return (
     <div className="flex min-h-dvh flex-col pb-6">
@@ -164,11 +195,24 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
 
         {organizer.description ? <p className="t-body text-ink">{organizer.description}</p> : null}
 
-        {/* The stats card renders only for the organizer's own account (design/screens.md §2). */}
+        {/* The stats card (design/screens.md §2): the organizer's own account sees it, and everyone once it is public. */}
         {isOrganizer && isSoon("organizerStats") ? (
           <WarningPanel tone="soon" title={t("org.stats.title")}>
             {t("org.stats.body")}
           </WarningPanel>
+        ) : null}
+        {canSeeStats && stats ? (
+          <Card tone="maas">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <span className="t-caption text-maas">{t("stats.caption", { days: stats.days })}</span>
+              {isOrganizer ? <Chip size="sm" tone="maas" label={organizer.statsPublic ? t("stats.public") : t("stats.private")} /> : null}
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <StatCell value={stats.views} label={t("stats.views")} />
+              <StatCell value={stats.saves} label={t("stats.saves")} />
+              <StatCell value={stats.followers} label={t("stats.followers")} />
+            </div>
+          </Card>
         ) : null}
 
         <div className="mt-1 flex items-center justify-between">

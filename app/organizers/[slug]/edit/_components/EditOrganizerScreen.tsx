@@ -33,6 +33,8 @@ type FormState = {
   description: string;
   /** a data URL, or null for the monogram */
   logo: string | null;
+  /** whether everyone sees the stats card, not only this account */
+  statsPublic: boolean;
 };
 
 function formFrom(organizer: ViewOrganizer): FormState {
@@ -44,6 +46,7 @@ function formFrom(organizer: ViewOrganizer): FormState {
     address: organizer.address ?? "",
     description: organizer.description ?? "",
     logo: organizer.logo ?? null,
+    statsPublic: organizer.statsPublic,
   };
 }
 
@@ -61,6 +64,7 @@ function changesBetween(initial: FormState, form: FormState): Record<string, unk
   if (address !== initial.address) body.address = address || null;
   if (description !== initial.description) body.description = description || null;
   if (form.logo !== initial.logo) body.logo_file = form.logo;
+  if (form.statsPublic !== initial.statsPublic) body.stats_public = form.statsPublic;
   return body;
 }
 
@@ -259,6 +263,14 @@ export function EditOrganizerScreen({ slug, organizer }: { slug: string; organiz
           placeholder={t("edit.description.placeholder")}
           value={form.description}
           onChange={(value) => set("description", value)}
+        />
+
+        <Field
+          kind="switch"
+          label={t("edit.statsPublic")}
+          checked={form.statsPublic}
+          onChange={(checked: boolean) => set("statsPublic", checked)}
+          hint={t("edit.statsPublic.hint")}
         />
       </div>
 

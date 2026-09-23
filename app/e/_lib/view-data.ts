@@ -59,6 +59,8 @@ export type ViewOrganizer = {
   description?: string;
   address?: string;
   logo?: string;
+  /** whether the organizer shows their stats (views, saves, followers) to everyone */
+  statsPublic: boolean;
   upcomingCount: number;
 };
 
@@ -108,6 +110,7 @@ function mapApiOrganizer(organizer: ApiOrganizer, upcomingCount: number): ViewOr
     description: organizer.description ?? undefined,
     address: organizer.address ?? undefined,
     logo: organizer.logo_file ?? undefined,
+    statsPublic: organizer.stats_public === true,
     upcomingCount,
   };
 }
@@ -167,6 +170,7 @@ function mapFixtureOrganizer(organizer: FixtureOrganizer, now: number): ViewOrga
     category: organizer.category,
     instagram: organizer.instagram,
     description: organizer.description,
+    statsPublic: false,
     upcomingCount: fixtureUpcomingCount(organizer, now),
   };
 }

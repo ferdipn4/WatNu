@@ -79,6 +79,7 @@ export const nl: Record<MessageKey, string> = {
   "home.calendar.previous": "Vorige maand",
   "home.calendar.next": "Volgende maand",
   "home.calendar.allDays": "Alle dagen",
+  "home.regulars": "Terugkerend",
   "home.empty.day.title": "Niets op deze dag",
   "home.empty.day.body": "Kies een andere dag, of bekijk de hele maand.",
   "home.empty.month.title": "Deze maand nog niets",

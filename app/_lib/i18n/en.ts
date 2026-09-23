@@ -84,6 +84,7 @@ export const en = {
   "home.calendar.previous": "Previous month",
   "home.calendar.next": "Next month",
   "home.calendar.allDays": "All days",
+  "home.regulars": "Regulars",
   "home.empty.day.title": "Nothing on this day",
   "home.empty.day.body": "Pick another day, or see the whole month.",
   "home.empty.month.title": "Nothing on this month yet",

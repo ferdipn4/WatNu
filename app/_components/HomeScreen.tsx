@@ -37,7 +37,8 @@ export interface HomeEvent {
   image?: string;
 }
 
-type QuickFilter = "today" | "weekend" | "free";
+/** `regulars` keeps only occurrences of recurring series — the weekly runs and meetups, not the one-off parties. */
+type QuickFilter = "today" | "weekend" | "free" | "regulars";
 type View = "list" | "calendar";
 
 const AMSTERDAM_TZ = "Europe/Amsterdam";
@@ -205,6 +206,7 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
     if (quick.has("free") && event.price > 0) return false;
     if (quick.has("today") && event.date !== todayK) return false;
     if (quick.has("weekend") && !isWeekend(event.date)) return false;
+    if (quick.has("regulars") && !event.repeats) return false;
     return true;
   };
   const byDateAndTime = (a: HomeEvent, b: HomeEvent) => (a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date));
@@ -296,6 +298,7 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
         <Chip label={dateNames(locale).today} selected={quick.has("today")} onClick={() => toggleQuick("today")} />
         <Chip label={t("home.weekend")} selected={quick.has("weekend")} onClick={() => toggleQuick("weekend")} />
         <Chip label={t("common.free")} selected={quick.has("free")} onClick={() => toggleQuick("free")} />
+        <Chip icon="repeat" label={t("home.regulars")} selected={quick.has("regulars")} onClick={() => toggleQuick("regulars")} />
         <span className="mx-1 h-[22px] w-px flex-none bg-line" aria-hidden="true" />
         {EVENT_CATEGORIES.map((category) => (
           <Chip key={category} label={t.category(category)} selected={categories.has(category)} onClick={() => toggleCategory(category)} />

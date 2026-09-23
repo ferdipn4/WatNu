@@ -33,6 +33,11 @@ create table if not exists events (
 -- Databases created before the end time existed: add the column in place (no-op on fresh ones).
 alter table events add column if not exists "end" timestamptz;
 
+-- Recurring events ("elke maandag"): one row is the series, `start` its first occurrence; the API
+-- expands it into occurrences (lib/occurrences.ts). `repeat_until` is the last day, null = open-ended.
+alter table events add column if not exists recurrence text check (recurrence in ('weekly', 'biweekly', 'monthly'));
+alter table events add column if not exists repeat_until date;
+
 create index if not exists events_start_idx on events (start);
 create index if not exists events_organizer_slug_idx on events (organizer_slug);
 

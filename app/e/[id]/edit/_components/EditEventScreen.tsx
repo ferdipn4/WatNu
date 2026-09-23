@@ -15,7 +15,7 @@ import { useToast } from "@/app/_lib/use-toast";
 import type { ViewEvent } from "@/app/e/_lib/view-data";
 import { ReviewStep } from "@/app/new/_components/ReviewStep";
 import { combineDateTime, combineEndDateTime, toDateInputValue, toTimeInputValue } from "@/app/new/_lib/datetime";
-import { isRequiredFilled, isValidOptionalUrl } from "@/app/new/_lib/form";
+import { formToRecurrence, isRepeatUntilValid, isRequiredFilled, isValidOptionalUrl } from "@/app/new/_lib/form";
 import type { FormState, ImagePayload } from "@/app/new/_lib/types";
 
 /** How long "Tap again to delete" stays armed. */
@@ -29,6 +29,8 @@ function formFrom(event: ViewEvent): FormState {
     date: toDateInputValue(event.start),
     startTime: toTimeInputValue(event.start),
     endTime: event.end ? toTimeInputValue(event.end) : "",
+    recurrence: event.recurrence ?? "",
+    repeatUntil: event.repeatUntil ?? "",
     location_name: event.location,
     address: event.address ?? "",
     category: event.category,
@@ -62,6 +64,10 @@ function changesBetween(initial: FormState, form: FormState, initialImage: strin
   if (description !== initial.description) body.description = description || null;
   if (signup !== initial.signup_url) body.source_url = signup || null;
   if (form.newcomer_friendly !== initial.newcomer_friendly) body.newcomer_friendly = form.newcomer_friendly;
+  const repeat = formToRecurrence(form);
+  const initialRepeat = formToRecurrence(initial);
+  if (repeat.recurrence !== initialRepeat.recurrence) body.recurrence = repeat.recurrence;
+  if (repeat.repeat_until !== initialRepeat.repeat_until) body.repeat_until = repeat.repeat_until;
   if (image !== initialImage) body.image_file = image;
   return body;
 }
@@ -195,7 +201,7 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
   }
 
   const dirty = Object.keys(changesBetween(initial, form, initialImage, posterImage)).length > 0;
-  const canSave = dirty && isRequiredFilled(form) && isValidOptionalUrl(form.signup_url) && !saving && !deleting;
+  const canSave = dirty && isRequiredFilled(form) && isValidOptionalUrl(form.signup_url) && isRepeatUntilValid(form) && !saving && !deleting;
 
   return (
     <div className="flex min-h-dvh flex-col">

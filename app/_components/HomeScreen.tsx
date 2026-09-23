@@ -31,6 +31,8 @@ export interface HomeEvent {
   category: Category;
   price: number;
   newcomers: boolean;
+  /** set when this row is one occurrence of a recurring series */
+  repeats?: "weekly" | "biweekly" | "monthly";
   /** a real uploaded photo url, when the organizer set one */
   image?: string;
 }
@@ -336,7 +338,7 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
               <DayHeader name={header.name} date={header.date} />
               <div className="flex flex-col gap-3 px-4">
                 {group.events.map((event) => (
-                  <div key={event.id} id={`event-${event.id}`}>
+                  <div key={`${event.id}-${event.date}`} id={`event-${event.id}`}>
                     <EventCard
                       title={event.title}
                       time={event.time}
@@ -346,6 +348,7 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
                       category={event.category}
                       price={event.price}
                       newcomers={event.newcomers}
+                      repeats={event.repeats}
                       image={resolveEventImage(event.image, event.category, event.title)}
                       saved={savedIds.has(event.id)}
                       onSave={onSaveFor(event.id)}

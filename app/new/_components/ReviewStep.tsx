@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
@@ -9,10 +9,13 @@ import { isLive, isSoon } from "@/lib/features";
 import type { DraftEvent } from "@/lib/schemas";
 import { EVENT_CATEGORIES, type EventCategory } from "@/lib/types";
 import { useT } from "@/app/_lib/i18n";
-import { isValidOptionalUrl } from "../_lib/form";
+import { isRepeatUntilValid, isValidOptionalUrl } from "../_lib/form";
 import { isTranslatedLanguage } from "../_lib/language";
 import { resizeImageFile } from "../_lib/resize-image";
 import type { FormState, ImagePayload } from "../_lib/types";
+
+const REPEAT_OPTIONS: FormState["recurrence"][] = ["", "weekly", "biweekly", "monthly"];
+const REPEAT_OPTION_KEYS = { "": "repeat.none", weekly: "repeat.weekly", biweekly: "repeat.biweekly", monthly: "repeat.monthly" } as const;
 
 export function ReviewStep({
   form,
@@ -37,6 +40,7 @@ export function ReviewStep({
   const t = useT();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const categoryRef = useRef<HTMLSelectElement>(null);
+  const repeatRef = useRef<HTMLSelectElement>(null);
   const [imageError, setImageError] = useState<string | null>(null);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -56,8 +60,8 @@ export function ReviewStep({
     }
   }
 
-  function openCategoryPicker() {
-    const select = categoryRef.current;
+  function openPicker(ref: RefObject<HTMLSelectElement | null>) {
+    const select = ref.current;
     if (!select) return;
     if (typeof select.showPicker === "function") select.showPicker();
     else select.focus();
@@ -69,6 +73,7 @@ export function ReviewStep({
   const timeMissing = missingFields.has("time");
   const startMissing = missingFields.has("start");
   const urlValid = isValidOptionalUrl(form.signup_url);
+  const untilValid = isRepeatUntilValid(form);
 
   return (
     <div className="flex flex-col gap-3 pt-2">
@@ -153,6 +158,34 @@ export function ReviewStep({
         />
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <div className="relative">
+          <Field kind="select" label={t("create.review.repeats")} value={t(REPEAT_OPTION_KEYS[form.recurrence])} onOpen={() => openPicker(repeatRef)} />
+          <select
+            ref={repeatRef}
+            value={form.recurrence}
+            onChange={(event) => set("recurrence", event.target.value as FormState["recurrence"])}
+            aria-label={t("create.review.repeats")}
+            className="sr-only"
+          >
+            {REPEAT_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {t(REPEAT_OPTION_KEYS[option])}
+              </option>
+            ))}
+          </select>
+        </div>
+        {form.recurrence ? (
+          <Field
+            label={t("create.review.until")}
+            type="date"
+            value={form.repeatUntil}
+            onChange={(v) => set("repeatUntil", v)}
+            hint={untilValid ? t("create.review.untilHint") : t("create.review.untilInvalid")}
+          />
+        ) : null}
+      </div>
+
       <Field label={t("create.review.location")} value={form.location_name} onChange={(v) => set("location_name", v)} missing={missingFields.has("location_name")} />
       <Field
         label={t("create.review.address")}
@@ -167,7 +200,7 @@ export function ReviewStep({
           kind="select"
           label={t("create.review.category")}
           value={t.category(form.category)}
-          onOpen={openCategoryPicker}
+          onOpen={() => openPicker(categoryRef)}
           missing={categoryMissing}
           trailing={!categoryMissing && draft ? <span className="text-maas">{t("create.review.aiGuess")}</span> : undefined}
         />

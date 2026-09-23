@@ -10,6 +10,7 @@ import {
   requireSupabaseReadClient,
   requireUser,
 } from "@/lib/api";
+import { queryOccurrences, type OccurrenceRow } from "@/lib/occurrences";
 import {
   createEventSchema,
   eventQuerySchema,
@@ -18,6 +19,9 @@ import {
 
 export const runtime = "nodejs";
 
+type JoinedRow = OccurrenceRow & { organizers?: { name: string; type: string | null } | { name: string; type: string | null }[] | null };
+
+/** Event occurrences matching the filters, in start order; a recurring series appears once per occurrence in the window. */
 export async function GET(request: NextRequest) {
   try {
     const params = request.nextUrl.searchParams;
@@ -37,24 +41,19 @@ export async function GET(request: NextRequest) {
     const { category, from, to, free, organizer, ids } = parsed.data;
     const supabase = requireSupabaseReadClient();
 
-    let query = supabase
-      .from("events")
-      .select(EVENT_COLUMNS_WITH_ORGANIZER)
-      .order("start", { ascending: true });
-
-    if (category) query = query.eq("category", category);
-    if (from) query = query.gte("start", new Date(from).toISOString());
-    if (to) query = query.lte("start", new Date(to).toISOString());
-    if (free) query = query.eq("price_eur", 0);
-    if (organizer) query = query.eq("organizer_slug", organizer);
-    if (ids) query = query.in("id", ids);
-
-    const { data, error } = await query;
+    const { rows, error } = await queryOccurrences<JoinedRow>(supabase, EVENT_COLUMNS_WITH_ORGANIZER, {
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+      category,
+      free,
+      organizer,
+      ids,
+    });
     if (error) {
       throw new HttpError(502, `Could not read events: ${error.message}`);
     }
 
-    return NextResponse.json({ events: (data ?? []).map(flattenOrganizer) });
+    return NextResponse.json({ events: rows.map(flattenOrganizer) });
   } catch (error) {
     return handleRouteError(error);
   }

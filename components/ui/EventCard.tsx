@@ -9,6 +9,8 @@ import { Icon, cx } from "./Icon";
 /** The six event categories. Chips filter by them; every event has exactly one. */
 export type Category = "Sport" | "Party" | "Café & Food" | "Culture" | "Study & Career" | "Social";
 
+const REPEAT_TAG_KEYS = { weekly: "repeat.tag.weekly", biweekly: "repeat.tag.biweekly", monthly: "repeat.tag.monthly" } as const;
+
 export interface EventCardProps {
   title: string;
   /** 24-hour start, "19:30" */
@@ -21,6 +23,8 @@ export interface EventCardProps {
   price?: number | null;
   /** the organizer's image (their uploaded poster by default): a url, or an element in previews. With it the card is vertical: image on top at 16:9, then the same row. Without it the card stays compact. */
   image?: string | ReactNode;
+  /** shows the "Weekly" / "Every 2 weeks" / "Monthly" tag of a recurring series */
+  repeats?: keyof typeof REPEAT_TAG_KEYS;
   /** shows the "Newcomers welcome" tag */
   newcomers?: boolean;
   saved?: boolean;
@@ -42,6 +46,7 @@ export function EventCard({
   price,
   image,
   newcomers,
+  repeats,
   saved,
   onSave,
   onClick,
@@ -76,6 +81,7 @@ export function EventCard({
           <div className="truncate text-[13px] font-medium leading-[18px] text-ink-muted">{meta}</div>
           <div className="mt-0.5 flex flex-wrap gap-1">
             <Chip size="sm" label={t.category(category)} />
+            {repeats ? <Chip size="sm" icon="repeat" label={t(REPEAT_TAG_KEYS[repeats])} /> : null}
             {newcomers ? <Chip size="sm" tone="maas" label={t("common.newcomers")} /> : null}
           </div>
         </div>

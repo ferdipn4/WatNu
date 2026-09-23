@@ -14,7 +14,7 @@ import { useT } from "@/app/_lib/i18n";
 import { uploadDataUrl } from "@/app/_lib/media";
 import { useToast } from "@/app/_lib/use-toast";
 import { toDateInputValue, toTimeInputValue } from "../_lib/datetime";
-import { blankForm, draftToForm, formToCheckPayload, formToCreatePayload, isRequiredFilled, isValidOptionalUrl } from "../_lib/form";
+import { blankForm, draftToForm, formToCheckPayload, formToCreatePayload, isRepeatUntilValid, isRequiredFilled, isValidOptionalUrl } from "../_lib/form";
 import type { CheckResponse, FormState, ImagePayload } from "../_lib/types";
 import { PublishStep } from "./PublishStep";
 import { ReadingStep } from "./ReadingStep";
@@ -133,7 +133,7 @@ export function CreateFlow() {
     setPosterImage(`data:${payload.mediaType};base64,${payload.base64}`);
   }
 
-  const canContinueFromReview = isRequiredFilled(form) && isValidOptionalUrl(form.signup_url);
+  const canContinueFromReview = isRequiredFilled(form) && isValidOptionalUrl(form.signup_url) && isRepeatUntilValid(form);
 
   function goToChecks() {
     if (!canContinueFromReview) return;

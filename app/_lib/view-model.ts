@@ -4,6 +4,7 @@
  * past events); the server pages use app/e/_lib/view-data.ts on top of this.
  */
 import { getDemoPromoForEvent } from "@/lib/promos";
+import type { Recurrence } from "@/lib/occurrences";
 import type { OrganizerType } from "@/lib/schemas";
 import { EVENT_CATEGORIES, type EventCategory } from "@/lib/types";
 import type { ApiEvent, ApiOrganizer } from "./types";
@@ -18,6 +19,10 @@ export type ViewEvent = {
   start: string;
   /** ISO instant, when known */
   end?: string;
+  /** set on a recurring series; `start` and `end` are then one occurrence of it */
+  recurrence?: Recurrence;
+  /** the last day of the series, `YYYY-MM-DD`, when the organizer set one */
+  repeatUntil?: string;
   location: string;
   address?: string;
   walkFromStation?: string;
@@ -70,6 +75,8 @@ export function mapApiEvent(event: ApiEvent, organizer?: { name: string; type: s
     description: event.description ?? "",
     start: event.start,
     end: event.end ?? undefined,
+    recurrence: event.recurrence ?? undefined,
+    repeatUntil: event.repeat_until ?? undefined,
     location: event.location_name ?? event.address ?? "Location to be announced",
     address: event.address ?? undefined,
     category: asCategory(event.category),

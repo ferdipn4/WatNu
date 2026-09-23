@@ -9,6 +9,10 @@ export type FormState = {
   startTime: string;
   /** `HH:mm`, local to the browser; empty when the poster states no end. Sent as `end` on the start's day (or the next, past midnight). */
   endTime: string;
+  /** "" for a one-off; weekly / biweekly / monthly for a series */
+  recurrence: "" | "weekly" | "biweekly" | "monthly";
+  /** `YYYY-MM-DD`, the last day of a series; empty = open-ended */
+  repeatUntil: string;
   location_name: string;
   address: string;
   category: EventCategory;

@@ -8,9 +8,13 @@ import {
   requireSupabaseReadClient,
   requireUser,
 } from "@/lib/api";
+import { queryOccurrences, type OccurrenceRow } from "@/lib/occurrences";
 import { updateOrganizerSchema, validationError } from "@/lib/schemas";
 
 export const runtime = "nodejs";
+
+/** How far ahead an organizer's upcoming list looks (recurring series would otherwise never end). */
+const UPCOMING_HORIZON_DAYS = 90;
 
 export async function GET(
   _request: Request,
@@ -37,12 +41,12 @@ export async function GET(
       throw new HttpError(404, `No organizer with slug "${slug}".`);
     }
 
-    const { data: events, error: eventsError } = await supabase
-      .from("events")
-      .select(EVENT_COLUMNS)
-      .eq("organizer_slug", slug)
-      .gte("start", new Date().toISOString())
-      .order("start", { ascending: true });
+    const now = new Date();
+    const { rows: events, error: eventsError } = await queryOccurrences<OccurrenceRow>(supabase, EVENT_COLUMNS, {
+      from: now,
+      to: new Date(now.getTime() + UPCOMING_HORIZON_DAYS * 86_400_000),
+      organizer: slug,
+    });
 
     if (eventsError) {
       throw new HttpError(
@@ -51,7 +55,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ organizer, upcoming_events: events ?? [] });
+    return NextResponse.json({ organizer, upcoming_events: events });
   } catch (error) {
     return handleRouteError(error);
   }

@@ -127,6 +127,12 @@ organizer's name and type joined in as `organizer_name` / `organizer_type`.
 Every screen asks for its slice (Home from this week's Monday, My WatNu from
 today plus its saved ids), never the whole table.
 
+A recurring event (`recurrence` = `weekly` / `biweekly` / `monthly`, optional
+`repeat_until` = last day) is one row whose `start` is its first occurrence.
+The list routes expand it into occurrences inside `from`–`to` (`lib/occurrences.ts`):
+one copy per occurrence with the same `id` and a shifted `start` / `end`. Without
+`to` the window ends eight weeks after `from`; at most 60 occurrences per series.
+
 ```bash
 curl.exe "http://localhost:3000/api/events"
 curl.exe "http://localhost:3000/api/events?category=Party&free=true"
@@ -152,7 +158,10 @@ curl.exe -X POST http://localhost:3000/api/events \
 ```
 
 `end` is optional (`null` when the poster states no end time) and must come after
-`start`; ingest drafts carry it too when the poster says so.
+`start`; ingest drafts carry it too when the poster says so. `recurrence`
+(`weekly` / `biweekly` / `monthly`) and `repeat_until` (`YYYY-MM-DD`) make it a
+series; ingest extracts them from "elke maandag"-style posters. Editing or
+deleting a series affects every occurrence.
 
 ### `GET /api/organizers`
 

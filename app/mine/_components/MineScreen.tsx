@@ -137,7 +137,7 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
     const end = event.end ? new Date(event.end) : null;
     return (
       <EventCard
-        key={event.id}
+        key={`${event.id}-${event.start}`}
         title={event.title}
         time={formatTime(start)}
         endTime={end ? formatTime(end) : undefined}
@@ -147,6 +147,7 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
         price={event.price}
         image={resolveEventImage(event.image, event.category, event.title)}
         newcomers={event.newcomers}
+        repeats={event.recurrence}
         saved={savedIds.includes(event.id)}
         onSave={saveOff ? null : saveSoon ? () => showSoon() : (next) => handleToggleSave(event.id, next)}
         onClick={() => router.push(`/e/${event.id}`)}

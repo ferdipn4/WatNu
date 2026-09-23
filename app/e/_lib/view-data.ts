@@ -8,7 +8,9 @@
  * Server Component page and pass the plain `ViewEvent` / `ViewOrganizer` results down as props.
  */
 import { fetchEvent, fetchEvents, fetchOrganizer, fetchOrganizers, type EventsQuery } from "@/app/_lib/api-client";
+import type { ApiEvent } from "@/app/_lib/types";
 import { mapApiEvent, mapApiOrganizer, type ViewEvent, type ViewOrganizer } from "@/app/_lib/view-model";
+import { expandOccurrences } from "@/lib/occurrences";
 import {
   FIXTURE_EVENTS,
   FIXTURE_ORGANIZERS,
@@ -19,6 +21,19 @@ import {
 import { demoPosterMarker } from "./demo-posters";
 
 export type { ViewEvent, ViewOrganizer, ViewPromo } from "@/app/_lib/view-model";
+
+/**
+ * A series row carries its first occurrence; the detail and edit screens show the next one from
+ * now — or the last one, once the series is over.
+ */
+function currentOccurrence(event: ApiEvent): ApiEvent {
+  if (!event.recurrence) return event;
+  const now = new Date();
+  const [next] = expandOccurrences(event, now, null);
+  if (next) return next;
+  const past = expandOccurrences(event, null, now);
+  return past[past.length - 1] ?? event;
+}
 
 function parseLocalDateTime(date: string, time: string): Date {
   const [y, m, d] = date.split("-").map(Number);
@@ -107,7 +122,7 @@ export async function getViewEvents(query: EventsQuery = {}): Promise<ViewEvent[
 export async function getViewEventById(id: string): Promise<ViewEvent | null> {
   try {
     const event = await fetchEvent(id);
-    return event ? mapApiEvent(event) : null;
+    return event ? mapApiEvent(currentOccurrence(event)) : null;
   } catch {
     const fixture = FIXTURE_EVENTS.find((e) => e.id === id);
     return fixture ? mapFixtureEvent(fixture) : null;

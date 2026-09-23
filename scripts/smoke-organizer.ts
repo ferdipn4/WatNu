@@ -108,6 +108,18 @@ async function main(): Promise<void> {
     const edited = await api(token, "PATCH", `/api/events/${eventId}`, { title: "Smoke test (edited)" });
     record("edit own event", edited.status === 200, `status ${edited.status} ${errorOf(edited.json)}`);
 
+    // 6c. A weekly series lists one occurrence per week inside the window asked for.
+    const weekly = await api(token, "PATCH", `/api/events/${eventId}`, { recurrence: "weekly" });
+    record("make the event weekly", weekly.status === 200, `status ${weekly.status} ${errorOf(weekly.json)}`);
+    const windowQuery = new URLSearchParams({ ids: eventId, from: new Date().toISOString(), to: new Date(Date.now() + 22 * 24 * 60 * 60 * 1000).toISOString() });
+    const listed = await api(null, "GET", `/api/events?${windowQuery}`);
+    const occurrences = ((listed.json as { events?: { id: string; start: string }[] } | null)?.events ?? []).filter((e) => e.id === eventId);
+    record(
+      "weekly event lists one occurrence per week",
+      listed.status === 200 && occurrences.length === 4 && new Set(occurrences.map((e) => e.start)).size === 4,
+      `status ${listed.status}, ${occurrences.length} occurrences`,
+    );
+
     const deleted = await fetch(`${BASE_URL}/api/events/${eventId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
     record("delete own event", deleted.status === 204, `status ${deleted.status}`);
   }

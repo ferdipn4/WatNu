@@ -229,7 +229,7 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
               const end = event.end ? new Date(event.end) : null;
               return (
                 <EventCard
-                  key={event.id}
+                  key={`${event.id}-${event.start}`}
                   title={event.title}
                   time={formatTime(start)}
                   endTime={end ? formatTime(end) : undefined}
@@ -238,6 +238,7 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
                   category={event.category}
                   price={event.price}
                   newcomers={event.newcomers}
+                  repeats={event.recurrence}
                   image={resolveEventImage(event.image, event.category, event.title)}
                   saved={savedIds.has(event.id)}
                   onSave={saveOff ? null : saveSoon ? () => showSoon() : (saved) => handleSave(event.id, saved)}

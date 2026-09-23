@@ -24,7 +24,16 @@ function slugifyFilename(title: string): string {
   return slug || "event";
 }
 
-/** Downloads an .ics with title, times, location and the event URL in the notes — pure client-side, no backend involved. */
+const RRULE_FREQ = { weekly: "FREQ=WEEKLY", biweekly: "FREQ=WEEKLY;INTERVAL=2", monthly: "FREQ=MONTHLY" } as const;
+
+/** A series as an RRULE, so the calendar repeats it too; UNTIL is the end of the last day. */
+function rruleFor(event: ViewEvent): string | null {
+  if (!event.recurrence) return null;
+  const until = event.repeatUntil ? `;UNTIL=${event.repeatUntil.replace(/-/g, "")}T235959Z` : "";
+  return `RRULE:${RRULE_FREQ[event.recurrence]}${until}`;
+}
+
+/** Downloads an .ics with title, times, location, the repeat rule and the event URL in the notes — pure client-side, no backend involved. */
 export function AddToCalendarButton({ event }: { event: ViewEvent }) {
   const t = useT();
 
@@ -32,6 +41,7 @@ export function AddToCalendarButton({ event }: { event: ViewEvent }) {
     const startDate = new Date(event.start);
     const endDate = event.end ? new Date(event.end) : new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
     const eventUrl = `${window.location.origin}/e/${event.id}`;
+    const rrule = rruleFor(event);
 
     const descriptionLines = [event.description, eventUrl].filter(
       (line): line is string => Boolean(line && line.trim().length > 0),
@@ -46,6 +56,7 @@ export function AddToCalendarButton({ event }: { event: ViewEvent }) {
       `DTSTAMP:${toIcsUtc(new Date())}`,
       `DTSTART:${toIcsUtc(startDate)}`,
       `DTEND:${toIcsUtc(endDate)}`,
+      ...(rrule ? [rrule] : []),
       `SUMMARY:${escapeIcsText(event.title)}`,
       ...(event.location ? [`LOCATION:${escapeIcsText(event.location)}`] : []),
       `DESCRIPTION:${escapeIcsText(descriptionLines.join("\n"))}`,

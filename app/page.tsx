@@ -29,6 +29,7 @@ function toHomeEvent(event: ViewEvent): HomeEvent {
     category: event.category,
     price: event.price,
     newcomers: event.newcomers,
+    repeats: event.recurrence,
     image: event.image,
   };
 }

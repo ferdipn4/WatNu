@@ -92,6 +92,7 @@ export function PublishStep({
         price={price}
         image={resolveEventImage(posterImage, form.category, form.title || t("create.publish.untitled"))}
         newcomers={form.newcomer_friendly}
+        repeats={form.recurrence || undefined}
         onSave={null}
       />
 

@@ -1,3 +1,4 @@
+import type { Recurrence } from "@/lib/occurrences";
 import type { DraftEvent } from "@/lib/schemas";
 import { EVENT_CATEGORIES } from "@/lib/types";
 import { combineDateTime, combineEndDateTime, toDateInputValue, toTimeInputValue } from "./datetime";
@@ -9,6 +10,8 @@ export function draftToForm(draft: DraftEvent): FormState {
     date: draft.start ? toDateInputValue(draft.start) : "",
     startTime: draft.start ? toTimeInputValue(draft.start) : "",
     endTime: draft.end ? toTimeInputValue(draft.end) : "",
+    recurrence: draft.recurrence ?? "",
+    repeatUntil: draft.repeat_until ?? "",
     location_name: draft.location_name ?? "",
     address: draft.address ?? "",
     category: draft.category,
@@ -26,6 +29,8 @@ export function blankForm(): FormState {
     date: "",
     startTime: "",
     endTime: "",
+    recurrence: "",
+    repeatUntil: "",
     location_name: "",
     address: "",
     category: EVENT_CATEGORIES[0],
@@ -56,6 +61,7 @@ export function formToCreatePayload(
     title: form.title.trim(),
     start: combineDateTime(form.date, form.startTime),
     end: combineEndDateTime(form.date, form.startTime, form.endTime) || null,
+    ...formToRecurrence(form),
     location_name: form.location_name.trim() || null,
     address: form.address.trim() || null,
     category: form.category,
@@ -66,6 +72,16 @@ export function formToCreatePayload(
     newcomer_friendly: form.newcomer_friendly,
     image_file: imageUrl || null,
   };
+}
+
+/** `recurrence` / `repeat_until` as the API stores them; an "Until" date only means something for a series. */
+export function formToRecurrence(form: FormState): { recurrence: Recurrence | null; repeat_until: string | null } {
+  return { recurrence: form.recurrence || null, repeat_until: form.recurrence ? form.repeatUntil || null : null };
+}
+
+/** The last day of a series can't come before its first. */
+export function isRepeatUntilValid(form: FormState): boolean {
+  return !form.recurrence || !form.repeatUntil || !form.date || form.repeatUntil >= form.date;
 }
 
 export function isRequiredFilled(form: FormState): boolean {

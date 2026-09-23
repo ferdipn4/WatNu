@@ -1,8 +1,24 @@
 import { z } from "zod";
 import { SUPPORTED_IMAGE_MEDIA_TYPES } from "@/lib/ai";
+import { RECURRENCES } from "@/lib/occurrences";
 import { EVENT_CATEGORIES } from "@/lib/types";
 
 export { EVENT_CATEGORIES };
+
+/** weekly / biweekly / monthly, or null for a one-off. */
+const optionalRecurrence = z
+  .enum(RECURRENCES)
+  .nullish()
+  .transform((value) => value ?? null);
+
+/** The last day a series happens, `YYYY-MM-DD`, or null for open-ended. */
+const optionalDateKey = z
+  .string()
+  .nullish()
+  .transform((value) => (value && value.trim() !== "" ? value.trim() : null))
+  .refine((value) => value === null || /^\d{4}-\d{2}-\d{2}$/.test(value), {
+    message: "Expected a YYYY-MM-DD date or null.",
+  });
 
 export const eventCategorySchema = z.enum(EVENT_CATEGORIES);
 export type ApiEventCategory = z.infer<typeof eventCategorySchema>;
@@ -78,6 +94,8 @@ export const draftEventSchema = z
     title: z.string().min(1),
     start: nullableIsoDateTime,
     end: optionalIsoDateTime.default(null),
+    recurrence: optionalRecurrence.default(null),
+    repeat_until: optionalDateKey.default(null),
     location_name: optionalText,
     address: optionalText,
     category: eventCategorySchema,
@@ -93,7 +111,8 @@ export const draftEventSchema = z
   .transform((rawDraft) => {
     // `end` and `signup_url` are optional by design: the model still tends to list them, which
     // would turn every poster without an end time amber for the wrong reason.
-    const draft = { ...rawDraft, missing_fields: rawDraft.missing_fields.filter((field) => field !== "end" && field !== "signup_url") };
+    const OPTIONAL_FIELDS = new Set(["end", "signup_url", "recurrence", "repeat_until"]);
+    const draft = { ...rawDraft, missing_fields: rawDraft.missing_fields.filter((field) => !OPTIONAL_FIELDS.has(field)) };
     // Defense in depth: enforce the "never guess a date" rule even if the
     // model forgets to flag it itself.
     if (!draft.start) {
@@ -158,6 +177,8 @@ export const createEventSchema = z
     title: z.string().trim().min(1),
     start: isoDateTime,
     end: optionalIsoDateTime.default(null),
+    recurrence: optionalRecurrence.default(null),
+    repeat_until: optionalDateKey.default(null),
     location_name: optionalText,
     address: optionalText,
     category: eventCategorySchema,
@@ -186,6 +207,8 @@ export const updateEventSchema = z
     title: z.string().trim().min(1).optional(),
     start: isoDateTime.optional(),
     end: optionalIsoDateTime.optional(),
+    recurrence: optionalRecurrence.optional(),
+    repeat_until: optionalDateKey.optional(),
     location_name: optionalText.optional(),
     address: optionalText.optional(),
     category: eventCategorySchema.optional(),

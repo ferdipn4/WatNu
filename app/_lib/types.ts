@@ -9,6 +9,10 @@ export type ApiEvent = {
   organizer_slug: string | null;
   start: string;
   end: string | null;
+  /** weekly / biweekly / monthly for a series: the row's `start` is its first occurrence, and the list routes return one copy per occurrence */
+  recurrence: "weekly" | "biweekly" | "monthly" | null;
+  /** the last day of a series, `YYYY-MM-DD`, or null when open-ended */
+  repeat_until: string | null;
   location_name: string | null;
   address: string | null;
   category: string | null;

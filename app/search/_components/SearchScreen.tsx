@@ -133,7 +133,15 @@ export function SearchScreen({ organizers }: { organizers: ViewOrganizer[] }) {
       <TopBar title={t("search.title")} close onBack={goBack} />
 
       <div className="px-4 pt-1">
-        <Field id={FIELD_ID} kind="search" placeholder={t("search.placeholder")} value={query} onChange={setQuery} />
+        {/* Enter (the keyboard's "search" key) only puts the keyboard away; results are already there. */}
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            (document.activeElement as HTMLElement | null)?.blur();
+          }}
+        >
+          <Field id={FIELD_ID} kind="search" placeholder={t("search.placeholder")} value={query} onChange={setQuery} />
+        </form>
         <p className="t-meta mt-2 text-ink-muted" aria-live="polite">
           {status}
         </p>

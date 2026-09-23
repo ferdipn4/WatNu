@@ -42,7 +42,8 @@ export function Card({ tone = "raised", tight, as, className, children, ...rest 
         shadow,
         radius,
         padding,
-        isButton && "cursor-pointer focus-visible:outline-none focus-visible:shadow-ring",
+        // A tappable card presses in slightly, so a tap on a phone feels answered before the next screen arrives.
+        isButton && "cursor-pointer transition-transform duration-150 active:scale-[0.985] focus-visible:outline-none focus-visible:shadow-ring",
         className,
       )}
     >

@@ -65,7 +65,7 @@ export function EventCard({
 
   const imageEl = image ? (
     <div className="relative aspect-video w-full overflow-hidden border-b border-line bg-surface-sunken">
-      <div className="h-full w-full [&>*]:block [&>*]:h-full [&>*]:w-full [&>*]:object-cover">{typeof image === "string" ? <img src={image} alt="" /> : image}</div>
+      <div className="h-full w-full [&>*]:block [&>*]:h-full [&>*]:w-full [&>*]:object-cover">{typeof image === "string" ? <img src={image} alt="" loading="lazy" decoding="async" /> : image}</div>
       {repeatLabel ? (
         <span className="absolute top-2 right-2 inline-flex h-7 items-center gap-1 rounded-full bg-ink/80 pr-2.5 pl-2 text-xs font-semibold tracking-[0.01em] text-surface backdrop-blur-sm">
           <Icon name="repeat" size={14} />

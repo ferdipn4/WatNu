@@ -10,6 +10,7 @@ import { resolveEventImage } from "@/components/ui/EventPoster";
 import { Icon, cx } from "@/components/ui/Icon";
 import { Toast } from "@/components/ui/Toast";
 import { isOff, isSoon } from "@/lib/features";
+import { WelcomeCard } from "./WelcomeCard";
 import { EVENT_CATEGORIES } from "@/lib/types";
 import { capitalize, dateNames, dayOnlyFromParts, shortDateFromParts, useT, type Locale } from "@/app/_lib/i18n";
 import { getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
@@ -301,6 +302,8 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
           </span>
         }
       />
+
+      <WelcomeCard />
 
       <div className="flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Chip icon="text" label={t("home.view.list")} selected={view === "list"} onClick={() => switchView("list")} />

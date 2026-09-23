@@ -67,7 +67,7 @@ export function OrgLogo({ name, initials, type = "association", src, size = "md"
         className,
       )}
     >
-      {src ? <img src={src} alt="" className="block h-full w-full object-cover" /> : label}
+      {src ? <img src={src} alt="" loading="lazy" decoding="async" className="block h-full w-full object-cover" /> : label}
     </span>
   );
 }

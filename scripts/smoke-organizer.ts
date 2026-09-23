@@ -95,6 +95,16 @@ async function main(): Promise<void> {
   record("publish own event", created.status === 201 && Boolean(eventId), `status ${created.status} ${errorOf(created.json)}`);
 
   if (eventId) {
+    // 6a. Search finds it by a word of the title and by the organizer's name.
+    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const byTitle = await api(null, "GET", `/api/events?${new URLSearchParams({ q: "delete me", from: since })}`);
+    const titleHit = ((byTitle.json as { events?: { id: string }[] } | null)?.events ?? []).some((e) => e.id === eventId);
+    record("search finds the event by title", byTitle.status === 200 && titleHit, `status ${byTitle.status}`);
+    const ownName = organizers[0]?.name ?? own;
+    const byOrganizer = await api(null, "GET", `/api/events?${new URLSearchParams({ q: ownName, from: since })}`);
+    const organizerHit = ((byOrganizer.json as { events?: { id: string }[] } | null)?.events ?? []).some((e) => e.id === eventId);
+    record("search finds the event by organizer name", byOrganizer.status === 200 && organizerHit, `status ${byOrganizer.status}, q=${JSON.stringify(ownName)}`);
+
     // 6b. Stats: anyone records a view, the organizer reads the numbers, strangers only once they are public.
     const view = await api(null, "POST", "/api/metrics", { kind: "event_view", id: eventId });
     record("record a view (anonymous)", view.status === 204, `status ${view.status} ${errorOf(view.json)}`);

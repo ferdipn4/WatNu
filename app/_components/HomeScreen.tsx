@@ -291,7 +291,16 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
 
   return (
     <TabScreen active="week">
-      <ScreenHeader title={title} meta={meta} right={<Chip size="sm" icon="pin" label={t("common.maastricht")} />} />
+      <ScreenHeader
+        title={title}
+        meta={meta}
+        right={
+          <span className="flex items-center gap-2">
+            <Chip size="sm" icon="pin" label={t("common.maastricht")} />
+            {!isOff("search") ? <Button iconOnly round variant="secondary" icon="search" aria-label={t("search.aria")} onClick={() => router.push("/search")} /> : null}
+          </span>
+        }
+      />
 
       <div className="flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Chip icon="text" label={t("home.view.list")} selected={view === "list"} onClick={() => switchView("list")} />

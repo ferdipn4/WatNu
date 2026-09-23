@@ -106,6 +106,8 @@ export type OccurrenceQuery = {
   free?: boolean;
   organizer?: string;
   ids?: string[];
+  /** free text; matched against title, description, location and the organizer's name */
+  q?: string;
 };
 
 /**
@@ -131,6 +133,19 @@ export async function queryOccurrences<T extends OccurrenceRow>(
   if (query.free) request = request.eq("price_eur", 0);
   if (query.organizer) request = request.eq("organizer_slug", query.organizer);
   if (query.ids) request = request.in("id", query.ids);
+  if (query.q) {
+    // The filter grammar uses these characters; a search term never needs them.
+    const term = query.q.replace(/[,()"'\\%_*]/g, "").trim();
+    if (term) {
+      // The organizer's name is not on the row: find the matching slugs first, then search rows by text or by those slugs.
+      const { data: named } = await supabase.from("organizers").select("slug").ilike("name", `%${term}%`).limit(50);
+      const slugs = ((named ?? []) as { slug: string }[]).map((row) => row.slug);
+      const pattern = `*${term}*`;
+      const clauses = [`title.ilike.${pattern}`, `description.ilike.${pattern}`, `location_name.ilike.${pattern}`];
+      if (slugs.length > 0) clauses.push(`organizer_slug.in.(${slugs.map((slug) => `"${slug}"`).join(",")})`);
+      request = request.or(clauses.join(","));
+    }
+  }
 
   const { data, error } = await request;
   if (error) return { rows: [], error };

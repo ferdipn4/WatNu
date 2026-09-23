@@ -122,7 +122,8 @@ plain-code recommendation of the quietest evening that week.
 ### `GET /api/events`
 
 Optional query params: `category`, `from`, `to`, `free=true`, `organizer`,
-`ids` (up to 100 comma-separated uuids). Ordered by `start`, with the
+`ids` (up to 100 comma-separated uuids), `q` (free text, case-insensitive, matched
+against title, description, location and the organizer's name — the search screen). Ordered by `start`, with the
 organizer's name and type joined in as `organizer_name` / `organizer_type`.
 Every screen asks for its slice (Home from this week's Monday, My WatNu from
 today plus its saved ids), never the whole table.

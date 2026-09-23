@@ -38,6 +38,8 @@ export type EventsQuery = {
   organizer?: string;
   /** up to 100 event ids (a phone's saved events) */
   ids?: string[];
+  /** free text: title, description, place or organizer name */
+  q?: string;
 };
 
 export function eventsQueryString(query: EventsQuery): string {
@@ -46,6 +48,7 @@ export function eventsQueryString(query: EventsQuery): string {
   if (query.to) params.set("to", query.to);
   if (query.organizer) params.set("organizer", query.organizer);
   if (query.ids && query.ids.length > 0) params.set("ids", query.ids.join(","));
+  if (query.q) params.set("q", query.q);
   const encoded = params.toString();
   return encoded ? `?${encoded}` : "";
 }

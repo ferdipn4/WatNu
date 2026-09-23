@@ -254,6 +254,13 @@ export const eventQuerySchema = z.object({
     .optional()
     .transform((value) => value === "true"),
   organizer: z.string().trim().min(1).optional(),
+  /** free text: title, description, place or organizer name (case-insensitive substring) */
+  q: z
+    .string()
+    .trim()
+    .max(60)
+    .optional()
+    .transform((value) => value || undefined),
   /** comma-separated event uuids — how My WatNu fetches the events a phone saved, past ones included */
   ids: z
     .string()

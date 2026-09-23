@@ -32,13 +32,14 @@ export async function GET(request: NextRequest) {
       free: params.get("free") ?? undefined,
       organizer: params.get("organizer") ?? undefined,
       ids: params.get("ids") ?? undefined,
+      q: params.get("q") ?? undefined,
     });
 
     if (!parsed.success) {
       return NextResponse.json(validationError(parsed.error), { status: 400 });
     }
 
-    const { category, from, to, free, organizer, ids } = parsed.data;
+    const { category, from, to, free, organizer, ids, q } = parsed.data;
     const supabase = requireSupabaseReadClient();
 
     const { rows, error } = await queryOccurrences<JoinedRow>(supabase, EVENT_COLUMNS_WITH_ORGANIZER, {
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
       free,
       organizer,
       ids,
+      q,
     });
     if (error) {
       throw new HttpError(502, `Could not read events: ${error.message}`);

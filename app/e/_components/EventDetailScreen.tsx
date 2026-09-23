@@ -88,8 +88,8 @@ export function EventDetailScreen({
   const shareSoon = isSoon("share");
   const calendarOff = isOff("calendarExport");
   const calendarSoon = isSoon("calendarExport");
+  // A promo on an event is the hard-coded demo (lib/promos.ts): shown working even while the feature is `soon`.
   const promo = event.promo && !isOff("promoCodes") ? event.promo : null;
-  const promoSoon = isSoon("promoCodes");
   // The organizer's own account can edit or delete this event.
   const canEdit = ready && !isOff("organizerProfile") && Boolean(event.organizerSlug) && isMemberOf(event.organizerSlug ?? "");
 
@@ -157,13 +157,7 @@ export function EventDetailScreen({
           {past ? <Chip size="sm" tone="ink" label={t("event.past")} /> : null}
           <Chip size="sm" label={t.category(event.category)} />
           {event.newcomers ? <Chip size="sm" tone="maas" label={t("common.newcomers")} /> : null}
-          {promo ? (
-            promoSoon ? (
-              <Chip size="sm" tone="soon" label={promoTagLabel(promo.label)} />
-            ) : (
-              <Chip size="sm" tone="accent" icon="ticket" label={promoTagLabel(promo.label)} />
-            )
-          ) : null}
+          {promo ? <Chip size="sm" tone="accent" icon="ticket" label={promoTagLabel(promo.label)} /> : null}
         </div>
 
         <h1 className="t-title text-ink">{event.title}</h1>
@@ -248,27 +242,20 @@ export function EventDetailScreen({
         ) : null}
 
         {promo ? (
-          <Card
-            tone="accent"
-            onClick={promoSoon ? showSoon : () => setSheetOpen(true)}
-            className={cx("flex! items-center gap-3", promoSoon && "border-dashed border-ink-muted bg-transparent")}
-          >
-            <span
-              aria-hidden="true"
-              className={cx("grid h-11 w-11 flex-none place-items-center rounded-full", promoSoon ? "bg-surface-sunken text-ink-muted" : "bg-accent-soft text-accent")}
-            >
+          <Card tone="accent" onClick={() => setSheetOpen(true)} className="flex! items-center gap-3">
+            <span aria-hidden="true" className="grid h-11 w-11 flex-none place-items-center rounded-full bg-accent-soft text-accent">
               <Icon name="qr" size={24} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className={cx("t-body-strong block truncate", promoSoon ? "text-ink-muted" : "text-accent")}>{promo.label}</span>
+              <span className="t-body-strong block truncate text-accent">{promo.label}</span>
               <span className="t-meta block text-ink-muted">{t("event.promo.body")}</span>
             </span>
-            {promoSoon ? <Chip size="sm" tone="soon" label={t("common.soon")} /> : <Icon name="chevron-right" className="flex-none text-accent" />}
+            <Icon name="chevron-right" className="flex-none text-accent" />
           </Card>
         ) : null}
       </div>
 
-      {sheetOpen && !promoSoon ? <PromoSheet event={event} qrDataUrl={qrDataUrl} onClose={() => setSheetOpen(false)} /> : null}
+      {sheetOpen ? <PromoSheet event={event} qrDataUrl={qrDataUrl} onClose={() => setSheetOpen(false)} /> : null}
       {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}
     </div>
   );

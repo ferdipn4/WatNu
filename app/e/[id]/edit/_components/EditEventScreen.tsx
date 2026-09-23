@@ -70,7 +70,7 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
   const router = useRouter();
   const t = useT();
   const { ready, user, isMemberOf } = useAuth();
-  const { toast } = useToast();
+  const { toast, showSoon } = useToast();
   const [initial] = useState<FormState | null>(() => (event ? formFrom(event) : null));
   const [form, setForm] = useState<FormState | null>(initial);
   const [initialImage] = useState<string | null>(() => event?.image ?? null);
@@ -204,6 +204,7 @@ export function EditEventScreen({ id, event }: { id: string; event: ViewEvent | 
           draft={null}
           posterImage={posterImage}
           onChangeImage={handleChangeImage}
+          onSoon={showSoon}
         />
 
         <Button

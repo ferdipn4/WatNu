@@ -32,9 +32,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
   const organizer = event.organizerSlug ? await getViewOrganizerBySlug(event.organizerSlug) : null;
 
   let qrDataUrl: string | null = null;
-  if (event.promo && event.organizerSlug) {
+  if (event.promo) {
     const origin = await getOrigin();
-    const redemptionUrl = `${origin}/promo/${event.organizerSlug}`;
+    const redemptionUrl = `${origin}/promo/${event.id}`;
     // The design spec encodes `WATNU:<promo>:<date>`, but there is no separate
     // organizer-scanning app in this build — encode a URL to the redemption
     // page instead, so actually scanning the QR does something.

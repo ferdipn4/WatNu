@@ -18,7 +18,7 @@ import {
   type FixtureEvent,
   type FixtureOrganizer,
 } from "@/lib/fixtures";
-import { getPromoForOrganizer } from "@/lib/promos";
+import { getDemoPromoForEvent } from "@/lib/promos";
 import type { OrganizerType } from "@/lib/schemas";
 import { EVENT_CATEGORIES, type EventCategory } from "@/lib/types";
 import { demoPosterMarker } from "./demo-posters";
@@ -72,11 +72,6 @@ function asOrgType(value: string | null | undefined): OrganizerType {
   return value && ORG_TYPE_SET.has(value as OrganizerType) ? (value as OrganizerType) : "association";
 }
 
-function promoFor(slug: string | null): ViewPromo | undefined {
-  const promo = getPromoForOrganizer(slug);
-  return promo ? { label: promo.text, code: promo.code } : undefined;
-}
-
 function mapApiEvent(event: ApiEvent, organizersBySlug: Map<string, ApiOrganizer>): ViewEvent {
   const organizer = event.organizer_slug ? organizersBySlug.get(event.organizer_slug) : undefined;
   return {
@@ -99,7 +94,7 @@ function mapApiEvent(event: ApiEvent, organizersBySlug: Map<string, ApiOrganizer
     // nothing to translate a caption from — see design/README.md's AI
     // provenance rule: never show a note the data can't back up.
     sourceLanguage: "en",
-    promo: promoFor(event.organizer_slug),
+    promo: getDemoPromoForEvent(event.id) ?? undefined,
   };
 }
 
@@ -154,7 +149,7 @@ function mapFixtureEvent(event: FixtureEvent): ViewEvent {
     organizerName: organizer?.name ?? "Organizer",
     organizerType: organizer?.type ?? "association",
     sourceLanguage: event.sourceLanguage,
-    promo: promoFor(organizer?.slug ?? null),
+    promo: event.promo ? { label: event.promo.label, code: event.promo.code } : undefined,
   };
 }
 

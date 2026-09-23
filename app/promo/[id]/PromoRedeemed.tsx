@@ -15,11 +15,11 @@ import {
  * page loaded — it counts itself once per visit into a localStorage counter.
  */
 export function PromoRedeemed({
-  slug,
+  eventId,
   organizerName,
   promoText,
 }: {
-  slug: string;
+  eventId: string;
   organizerName: string;
   promoText: string;
 }) {
@@ -29,10 +29,10 @@ export function PromoRedeemed({
   useEffect(() => {
     if (incremented.current) return;
     incremented.current = true;
-    const key = promoRedemptionStorageKey(slug);
+    const key = promoRedemptionStorageKey(eventId);
     const current = Number(readLocalStorageValue(key) ?? "0");
     writeLocalStorageValue(key, String(current + 1));
-  }, [slug]);
+  }, [eventId]);
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col items-center justify-center gap-3 px-6 text-center">

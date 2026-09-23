@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Icon, cx } from "@/components/ui/Icon";
-import { isLive } from "@/lib/features";
+import { isLive, isSoon } from "@/lib/features";
 import type { DraftEvent } from "@/lib/schemas";
 import { EVENT_CATEGORIES, type EventCategory } from "@/lib/types";
 import { useT } from "@/app/_lib/i18n";
@@ -22,6 +22,7 @@ export function ReviewStep({
   posterImage,
   onChangeImage,
   highlightDate,
+  onSoon,
 }: {
   form: FormState;
   onChange: (next: FormState) => void;
@@ -30,6 +31,8 @@ export function ReviewStep({
   posterImage: string | null;
   onChangeImage: (payload: ImagePayload) => void;
   highlightDate?: boolean;
+  /** shows the "Not in this version yet" toast for the `soon` controls on the form (promo codes) */
+  onSoon?: () => void;
 }) {
   const t = useT();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -206,6 +209,13 @@ export function ReviewStep({
         onChange={(v) => set("description", v)}
         missing={missingFields.has("description")}
       />
+
+      {/* Promo codes have no backend yet (features.promoCodes): the control keeps its place, dashed, and says so when tapped. */}
+      {isSoon("promoCodes") && onSoon ? (
+        <Button variant="secondary" full icon="ticket" soon onSoon={onSoon}>
+          {t("create.review.promo")}
+        </Button>
+      ) : null}
     </div>
   );
 }

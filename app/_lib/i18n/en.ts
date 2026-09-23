@@ -273,6 +273,7 @@ export const en = {
   "create.review.signup": "Sign-up URL",
   "create.review.signupInvalid": "That doesn't look like a valid link",
   "create.review.signupHint": "Optional — a registration link, if there is one",
+  "create.review.promo": "Add a promo code",
   "create.review.description": "Description",
   "create.review.continue": "Check & continue",
   "create.publish.preview": "How it will look on {weekday}",

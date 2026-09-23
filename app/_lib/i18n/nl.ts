@@ -268,6 +268,7 @@ export const nl: Record<MessageKey, string> = {
   "create.review.signup": "Aanmeldlink",
   "create.review.signupInvalid": "Dat ziet er niet uit als een geldige link",
   "create.review.signupHint": "Optioneel — een aanmeldlink, als die er is",
+  "create.review.promo": "Promocode toevoegen",
   "create.review.description": "Beschrijving",
   "create.review.continue": "Controleren & verder",
   "create.publish.preview": "Zo ziet het eruit op {weekday}",

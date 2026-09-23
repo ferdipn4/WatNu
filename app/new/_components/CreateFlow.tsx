@@ -264,6 +264,7 @@ export function CreateFlow() {
             posterImage={posterImage}
             onChangeImage={handleChangeImage}
             highlightDate={highlightDate}
+            onSoon={showSoon}
           />
         </StepShell>
       ) : null}

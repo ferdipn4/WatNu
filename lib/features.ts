@@ -17,7 +17,7 @@ export const features = {
   follow: 'local',        // follow → localStorage
   calendarExport: 'live', // "Add to calendar" (.ics) on the detail screen — pure client-side, no backend needed
   share: 'live',          // native share sheet / copy link
-  promoCodes: 'local',    // the promo card + QR sheet on the detail screen, the 10% off tag — demo data, redemptions counted in localStorage
+  promoCodes: 'soon',     // no backend and no organizer UI yet: a dashed "Add a promo code" on the event form; one demo event (lib/promos.ts) shows the working card + QR sheet
   organizerStats: 'soon', // the stats card on the organizer profile
   organizerProfile: 'live', // organizer accounts (Supabase Auth, demo accounts from scripts/create-demo-organizer.ts): sign in, Edit profile, publish — row level security only lets members write
   search: 'live',         // the organizer directory search

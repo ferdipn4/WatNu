@@ -13,7 +13,7 @@ import { useT } from "@/app/_lib/i18n";
 import { useToast } from "@/app/_lib/use-toast";
 import type { ViewEvent } from "@/app/e/_lib/view-data";
 import { ReviewStep } from "@/app/new/_components/ReviewStep";
-import { combineDateTime, toDateInputValue, toTimeInputValue } from "@/app/new/_lib/datetime";
+import { combineDateTime, combineEndDateTime, toDateInputValue, toTimeInputValue } from "@/app/new/_lib/datetime";
 import { isRequiredFilled, isValidOptionalUrl } from "@/app/new/_lib/form";
 import type { FormState, ImagePayload } from "@/app/new/_lib/types";
 
@@ -38,11 +38,14 @@ function formFrom(event: ViewEvent): FormState {
   };
 }
 
-/** Only what changed goes to PATCH /api/events/[id] (it needs at least one field). End time has no column yet, like in the create flow. */
+/** Only what changed goes to PATCH /api/events/[id] (it needs at least one field). */
 function changesBetween(initial: FormState, form: FormState, initialImage: string | null, image: string | null): Record<string, unknown> {
   const body: Record<string, unknown> = {};
   const title = form.title.trim();
   const start = combineDateTime(form.date, form.startTime);
+  // The end follows the start's day, so a changed date re-sends it too.
+  const end = combineEndDateTime(form.date, form.startTime, form.endTime) || null;
+  const initialEnd = combineEndDateTime(initial.date, initial.startTime, initial.endTime) || null;
   const location = form.location_name.trim();
   const address = form.address.trim();
   const description = form.description.trim();
@@ -50,6 +53,7 @@ function changesBetween(initial: FormState, form: FormState, initialImage: strin
   const price = Number(form.price_eur) || 0;
   if (title !== initial.title) body.title = title;
   if (start && start !== combineDateTime(initial.date, initial.startTime)) body.start = start;
+  if (end !== initialEnd) body.end = end;
   if (location !== initial.location_name) body.location_name = location || null;
   if (address !== initial.address) body.address = address || null;
   if (form.category !== initial.category) body.category = form.category;

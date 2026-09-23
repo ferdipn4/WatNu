@@ -138,7 +138,7 @@ export function ReviewStep({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label={t("create.review.end")} type="time" value={form.endTime} onChange={(v) => set("endTime", v)} missing={Boolean(draft)} />
+        <Field label={t("create.review.end")} type="time" value={form.endTime} onChange={(v) => set("endTime", v)} missing={Boolean(draft) && !form.endTime} />
         <Field
           label={t("create.review.price")}
           type="number"

@@ -129,8 +129,11 @@ Saves a reviewed event using the service-role client.
 ```bash
 curl.exe -X POST http://localhost:3000/api/events \
   -H "Content-Type: application/json" \
-  -d '{"title":"Neon Night","start":"2026-10-03T22:00:00+02:00","location_name":"De Kroeg","address":"Boschstraat 24, Maastricht","category":"Party","price_eur":7.5,"description":"Neon themed night with student entry.","organizer_slug":"de-kroeg","newcomer_friendly":true}'
+  -d '{"title":"Neon Night","start":"2026-10-03T22:00:00+02:00","end":"2026-10-04T03:00:00+02:00","location_name":"De Kroeg","address":"Boschstraat 24, Maastricht","category":"Party","price_eur":7.5,"description":"Neon themed night with student entry.","organizer_slug":"de-kroeg","newcomer_friendly":true}'
 ```
+
+`end` is optional (`null` when the poster states no end time) and must come after
+`start`; ingest drafts carry it too when the poster says so.
 
 ### `GET /api/organizers`
 

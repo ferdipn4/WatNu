@@ -40,6 +40,9 @@ export async function PATCH(
     if (typeof updates.start === "string") {
       updates.start = new Date(updates.start).toISOString();
     }
+    if (typeof updates.end === "string") {
+      updates.end = new Date(updates.end).toISOString();
+    }
 
     const { data, error } = await supabase
       .from("events")

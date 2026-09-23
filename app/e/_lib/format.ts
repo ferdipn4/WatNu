@@ -41,6 +41,11 @@ export function dayKey(d: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
+/** Whether the day of `d` is over: a saved event from yesterday is past, tonight's is not. */
+export function isPastDay(d: Date, now: Date = new Date()): boolean {
+  return dayKey(d) < dayKey(now);
+}
+
 /** Day-group header: "Today" / "Tomorrow", then the weekday name — each with the short date beside it. */
 export function dayHeaderLabel(d: Date, locale: Locale, now: Date = new Date()): { name: string; date: string } {
   const names = dateNames(locale);

@@ -153,6 +153,10 @@ function buildPrompt(
     "Never invent a time either. If the date is known but no start time is",
     'stated anywhere, keep that date and set the time to 20:00 as an explicit',
     'placeholder, list "time" in `missing_fields`, and cap `confidence` at 0.7.',
+    "Set `end` only when an end time is actually stated (\"20:00–23:00\",",
+    '"tot 23:00", "doors 22:00, close 04:00"); "until late" is not a time.',
+    "An end before the start time (23:00–04:00) means the next day. When no",
+    "end is stated, `end` is `null` — it is optional and never a missing field.",
     "",
     "Known organizers (match on name, handle or venue; use the slug verbatim):",
     organizerList,
@@ -165,6 +169,7 @@ function buildPrompt(
     {
       "title": "string",
       "start": "ISO 8601 timestamp, or null if no date is stated",
+      "end": "ISO 8601 timestamp when an end time is stated, else null",
       "location_name": "string or null",
       "address": "string or null",
       "category": "one of the allowed categories",

@@ -84,6 +84,7 @@ function mapApiEvent(event: ApiEvent, organizersBySlug: Map<string, ApiOrganizer
     title: event.title,
     description: event.description ?? "",
     start: event.start,
+    end: event.end ?? undefined,
     location: event.location_name ?? event.address ?? "Location to be announced",
     address: event.address ?? undefined,
     category: asCategory(event.category),

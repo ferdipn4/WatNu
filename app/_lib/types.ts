@@ -8,6 +8,7 @@ export type ApiEvent = {
   title: string;
   organizer_slug: string | null;
   start: string;
+  end: string | null;
   location_name: string | null;
   address: string | null;
   category: string | null;

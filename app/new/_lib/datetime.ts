@@ -25,6 +25,19 @@ export function combineDateTime(date: string, time: string): string {
   return parsed.toISOString();
 }
 
+/**
+ * The end as an ISO instant on the start's day; an end at or before the start time crosses
+ * midnight (21:00–00:00, 23:00–04:00) and lands on the next day. `""` when any part is missing.
+ */
+export function combineEndDateTime(date: string, startTime: string, endTime: string): string {
+  if (!date || !startTime || !endTime) return "";
+  const start = new Date(`${date}T${startTime}`);
+  const end = new Date(`${date}T${endTime}`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
+  if (end.getTime() <= start.getTime()) end.setDate(end.getDate() + 1);
+  return end.toISOString();
+}
+
 /** "Thu 24 Sep" — the app's short date format, Europe/Amsterdam, in the UI language. */
 export function formatShortDate(iso: string, locale: Locale): string {
   const date = new Date(iso);

@@ -29,6 +29,26 @@ const nullableIsoDateTime = z
   })
   .transform((value) => value ?? "");
 
+/**
+ * An ISO date-time or `null` — never required. Used for the end of an event, which posters
+ * often leave out; nobody guesses it.
+ */
+const optionalIsoDateTime = z
+  .string()
+  .nullish()
+  .transform((value) => (value && value.trim() !== "" ? value.trim() : null))
+  .refine((value) => value === null || !Number.isNaN(Date.parse(value)), {
+    message: "Expected an ISO 8601 date-time string or null.",
+  });
+
+/** `end`, when given, must come after `start`; the client already pushes a midnight-crossing end to the next day. */
+function endAfterStart(value: { start?: string; end?: string | null }): boolean {
+  if (!value.start || !value.end) return true;
+  return new Date(value.end).getTime() > new Date(value.start).getTime();
+}
+
+const END_AFTER_START = { message: "End must be after start.", path: ["end"] };
+
 const optionalText = z
   .string()
   .nullish()
@@ -48,6 +68,7 @@ export const draftEventSchema = z
   .object({
     title: z.string().min(1),
     start: nullableIsoDateTime,
+    end: optionalIsoDateTime.default(null),
     location_name: optionalText,
     address: optionalText,
     category: eventCategorySchema,
@@ -120,19 +141,22 @@ export const ingestRequestSchema = z
 export type IngestRequest = z.infer<typeof ingestRequestSchema>;
 
 /** Body accepted by POST /api/events. */
-export const createEventSchema = z.object({
-  title: z.string().trim().min(1),
-  start: isoDateTime,
-  location_name: optionalText,
-  address: optionalText,
-  category: eventCategorySchema,
-  price_eur: z.coerce.number().min(0).default(0),
-  description: optionalText,
-  source_url: z.string().url().nullish().default(null),
-  organizer_slug: optionalText,
-  newcomer_friendly: z.boolean().default(false),
-  image_file: optionalText,
-});
+export const createEventSchema = z
+  .object({
+    title: z.string().trim().min(1),
+    start: isoDateTime,
+    end: optionalIsoDateTime.default(null),
+    location_name: optionalText,
+    address: optionalText,
+    category: eventCategorySchema,
+    price_eur: z.coerce.number().min(0).default(0),
+    description: optionalText,
+    source_url: z.string().url().nullish().default(null),
+    organizer_slug: optionalText,
+    newcomer_friendly: z.boolean().default(false),
+    image_file: optionalText,
+  })
+  .refine(endAfterStart, END_AFTER_START);
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 
@@ -149,6 +173,7 @@ export const updateEventSchema = z
   .object({
     title: z.string().trim().min(1).optional(),
     start: isoDateTime.optional(),
+    end: optionalIsoDateTime.optional(),
     location_name: optionalText.optional(),
     address: optionalText.optional(),
     category: eventCategorySchema.optional(),
@@ -161,7 +186,8 @@ export const updateEventSchema = z
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "Provide at least one field to update.",
-  });
+  })
+  .refine(endAfterStart, END_AFTER_START);
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 

@@ -19,10 +19,19 @@ import { useToast } from "@/app/_lib/use-toast";
 import { dayHeaderLabel, dayKey, formatTime } from "@/app/e/_lib/format";
 import type { ViewEvent, ViewOrganizer } from "@/app/e/_lib/view-data";
 
-function startOfToday(): Date {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date;
+type DayGroup = { date: Date; events: ViewEvent[] };
+
+/** Groups an already sorted list by local calendar day, keeping the order. */
+function groupByDay(events: ViewEvent[]): DayGroup[] {
+  const byKey = new Map<string, DayGroup>();
+  for (const event of events) {
+    const date = new Date(event.start);
+    const key = dayKey(date);
+    const group = byKey.get(key);
+    if (group) group.events.push(event);
+    else byKey.set(key, { date, events: [event] });
+  }
+  return Array.from(byKey.values());
 }
 
 export function MineScreen({ events, organizers }: { events: ViewEvent[]; organizers: ViewOrganizer[] }) {
@@ -51,30 +60,26 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
     [followedSlugs, organizers],
   );
 
-  // Everything saved plus every upcoming event from followed organizers; past events drop off at midnight.
-  const mineEvents = useMemo(() => {
-    const cutoff = startOfToday().getTime();
-    return events
+  // Upcoming: everything saved plus every event from followed organizers, from today on.
+  // Past: only what the student saved themselves, newest first — kept, greyed, still tappable.
+  const { upcoming, past } = useMemo(() => {
+    const today = dayKey(new Date());
+    const byStart = (a: ViewEvent, b: ViewEvent) => new Date(a.start).getTime() - new Date(b.start).getTime();
+    const upcoming = events
       .filter((event) => {
         const isSaved = savedIds.includes(event.id);
         const isFromFollowed = !!event.organizerSlug && followedSlugs.includes(event.organizerSlug);
-        if (!isSaved && !isFromFollowed) return false;
-        return new Date(event.start).getTime() >= cutoff;
+        return (isSaved || isFromFollowed) && dayKey(new Date(event.start)) >= today;
       })
-      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+      .sort(byStart);
+    const past = events
+      .filter((event) => savedIds.includes(event.id) && dayKey(new Date(event.start)) < today)
+      .sort((a, b) => byStart(b, a));
+    return { upcoming, past };
   }, [events, savedIds, followedSlugs]);
 
-  const groups = useMemo(() => {
-    const byKey = new Map<string, { date: Date; events: ViewEvent[] }>();
-    for (const event of mineEvents) {
-      const date = new Date(event.start);
-      const key = dayKey(date);
-      const group = byKey.get(key);
-      if (group) group.events.push(event);
-      else byKey.set(key, { date, events: [event] });
-    }
-    return Array.from(byKey.values());
-  }, [mineEvents]);
+  const groups = useMemo(() => groupByDay(upcoming), [upcoming]);
+  const pastGroups = useMemo(() => groupByDay(past), [past]);
 
   const saveOff = isOff("save");
   const saveSoon = isSoon("save");
@@ -94,6 +99,38 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
   ) : (
     <Button iconOnly round variant="secondary" icon="user" aria-label={t("mine.profileButton")} onClick={() => router.push("/mine/profile")} />
   );
+
+  function renderCard(event: ViewEvent) {
+    const start = new Date(event.start);
+    const end = event.end ? new Date(event.end) : null;
+    return (
+      <EventCard
+        key={event.id}
+        title={event.title}
+        time={formatTime(start)}
+        endTime={end ? formatTime(end) : undefined}
+        location={event.location}
+        organizer={event.organizerName}
+        category={event.category}
+        price={event.price}
+        image={resolveEventImage(event.image, event.category, event.title)}
+        newcomers={event.newcomers}
+        saved={savedIds.includes(event.id)}
+        onSave={saveOff ? null : saveSoon ? () => showSoon() : (next) => handleToggleSave(event.id, next)}
+        onClick={() => router.push(`/e/${event.id}`)}
+      />
+    );
+  }
+
+  function renderGroup({ date, events: dayEvents }: DayGroup, muted = false) {
+    const header = dayHeaderLabel(date, t.locale);
+    return (
+      <section key={dayKey(date)} className={cx(muted && "opacity-60")}>
+        <DayHeader name={header.name} date={header.date} />
+        <div className="flex flex-col gap-3 px-4">{dayEvents.map(renderCard)}</div>
+      </section>
+    );
+  }
 
   return (
     <TabScreen active="mine">
@@ -126,7 +163,7 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
         </div>
       ) : null}
 
-      {mineEvents.length === 0 ? (
+      {upcoming.length === 0 && past.length === 0 ? (
         <div className="flex flex-col items-center gap-3 px-6 pt-24 pb-10 text-center">
           <span className="grid h-[72px] w-[72px] place-items-center rounded-full bg-accent-soft text-accent">
             <Icon name="bookmark" size={32} />
@@ -141,37 +178,19 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
           </Button>
         </div>
       ) : (
-        groups.map(({ date, events: dayEvents }) => {
-          const header = dayHeaderLabel(date, t.locale);
-          return (
-            <section key={dayKey(date)}>
-              <DayHeader name={header.name} date={header.date} />
-              <div className="flex flex-col gap-3 px-4">
-                {dayEvents.map((event) => {
-                  const start = new Date(event.start);
-                  const end = event.end ? new Date(event.end) : null;
-                  return (
-                    <EventCard
-                      key={event.id}
-                      title={event.title}
-                      time={formatTime(start)}
-                      endTime={end ? formatTime(end) : undefined}
-                      location={event.location}
-                      organizer={event.organizerName}
-                      category={event.category}
-                      price={event.price}
-                      image={resolveEventImage(event.image, event.category, event.title)}
-                      newcomers={event.newcomers}
-                      saved={savedIds.includes(event.id)}
-                      onSave={saveOff ? null : saveSoon ? () => showSoon() : (next) => handleToggleSave(event.id, next)}
-                      onClick={() => router.push(`/e/${event.id}`)}
-                    />
-                  );
-                })}
+        <>
+          {groups.map((group) => renderGroup(group))}
+
+          {pastGroups.length > 0 ? (
+            <>
+              <div className="flex items-baseline gap-2 px-4 pt-8">
+                <h2 className="t-heading text-ink-muted">{t("mine.past")}</h2>
+                <span className="t-meta text-ink-muted">{t.n("events", past.length)}</span>
               </div>
-            </section>
-          );
-        })
+              {pastGroups.map((group) => renderGroup(group, true))}
+            </>
+          ) : null}
+        </>
       )}
 
       {toast ? <Toast tone={toast.tone}>{toast.text}</Toast> : null}

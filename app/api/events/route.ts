@@ -71,7 +71,11 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from("events")
-      .insert({ ...parsed.data, start: new Date(parsed.data.start).toISOString() })
+      .insert({
+        ...parsed.data,
+        start: new Date(parsed.data.start).toISOString(),
+        end: parsed.data.end ? new Date(parsed.data.end).toISOString() : null,
+      })
       .select(EVENT_COLUMNS_WITH_ORGANIZER)
       .single();
 

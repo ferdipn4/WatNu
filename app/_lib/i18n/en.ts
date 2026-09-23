@@ -155,6 +155,7 @@ export const en = {
   "mine.empty.browse": "Browse this week",
   "mine.empty.find": "Find organizers",
   "mine.profileButton": "Profile and settings",
+  "mine.past": "Past",
 
   // your profile and settings
   "you.title": "Profile",
@@ -193,6 +194,7 @@ export const en = {
   "event.upcoming_other": "{count} upcoming",
   "event.addToCalendar": "Add to calendar",
   "event.edit": "Edit event",
+  "event.past": "Past",
 
   // edit event (the organizer's own)
   "eventEdit.title": "Edit event",

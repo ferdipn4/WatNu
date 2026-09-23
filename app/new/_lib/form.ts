@@ -1,6 +1,6 @@
 import type { DraftEvent } from "@/lib/schemas";
 import { EVENT_CATEGORIES } from "@/lib/types";
-import { combineDateTime, toDateInputValue, toTimeInputValue } from "./datetime";
+import { combineDateTime, combineEndDateTime, toDateInputValue, toTimeInputValue } from "./datetime";
 import type { FormState } from "./types";
 
 export function draftToForm(draft: DraftEvent): FormState {
@@ -8,7 +8,7 @@ export function draftToForm(draft: DraftEvent): FormState {
     title: draft.title,
     date: draft.start ? toDateInputValue(draft.start) : "",
     startTime: draft.start ? toTimeInputValue(draft.start) : "",
-    endTime: "",
+    endTime: draft.end ? toTimeInputValue(draft.end) : "",
     location_name: draft.location_name ?? "",
     address: draft.address ?? "",
     category: draft.category,
@@ -55,6 +55,7 @@ export function formToCreatePayload(
   return {
     title: form.title.trim(),
     start: combineDateTime(form.date, form.startTime),
+    end: combineEndDateTime(form.date, form.startTime, form.endTime) || null,
     location_name: form.location_name.trim() || null,
     address: form.address.trim() || null,
     category: form.category,

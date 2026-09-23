@@ -150,6 +150,7 @@ export const nl: Record<MessageKey, string> = {
   "mine.empty.browse": "Bekijk deze week",
   "mine.empty.find": "Zoek organisatoren",
   "mine.profileButton": "Profiel en instellingen",
+  "mine.past": "Voorbij",
 
   // your profile and settings
   "you.title": "Profiel",
@@ -188,6 +189,7 @@ export const nl: Record<MessageKey, string> = {
   "event.upcoming_other": "{count} aankomend",
   "event.addToCalendar": "In agenda zetten",
   "event.edit": "Evenement bewerken",
+  "event.past": "Voorbij",
 
   // edit event (the organizer's own)
   "eventEdit.title": "Evenement bewerken",

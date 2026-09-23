@@ -7,12 +7,7 @@ export type FormState = {
   date: string;
   /** `HH:mm`, local to the browser. */
   startTime: string;
-  /**
-   * `HH:mm`, local to the browser. Shown per the design (`End` field on
-   * step 3) but there is no `end` column in `createEventSchema` /
-   * `supabase/schema.sql` yet, so it is never sent to the backend — kept
-   * here only so the field has somewhere to live while it's edited.
-   */
+  /** `HH:mm`, local to the browser; empty when the poster states no end. Sent as `end` on the start's day (or the next, past midnight). */
   endTime: string;
   location_name: string;
   address: string;

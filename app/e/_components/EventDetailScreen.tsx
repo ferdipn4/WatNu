@@ -16,7 +16,7 @@ import { useT } from "@/app/_lib/i18n";
 import { isEventSaved, toggleSavedEvent } from "@/app/_lib/store";
 import { useToast } from "@/app/_lib/use-toast";
 import { renderDemoPoster } from "../_lib/demo-posters";
-import { factClockText } from "../_lib/format";
+import { factClockText, isPastDay } from "../_lib/format";
 import type { ViewEvent, ViewOrganizer } from "../_lib/view-data";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 import { PromoSheet } from "./PromoSheet";
@@ -96,6 +96,7 @@ export function EventDetailScreen({
   const start = new Date(event.start);
   const end = event.end ? new Date(event.end) : null;
   const free = event.price === 0;
+  const past = isPastDay(start);
   const mapQuery = encodeURIComponent(event.address || event.location);
 
   // The hero is the organizer's own image (a real upload, a fixture poster, or the category poster
@@ -153,6 +154,7 @@ export function EventDetailScreen({
 
       <div className="flex flex-col gap-3.5 px-4 pt-4">
         <div className="flex flex-wrap gap-1">
+          {past ? <Chip size="sm" tone="ink" label={t("event.past")} /> : null}
           <Chip size="sm" label={t.category(event.category)} />
           {event.newcomers ? <Chip size="sm" tone="maas" label={t("common.newcomers")} /> : null}
           {promo ? (

@@ -18,6 +18,7 @@ create table if not exists events (
   title text not null,
   organizer_slug text references organizers (slug) on update cascade on delete set null,
   start timestamptz not null,
+  "end" timestamptz,
   location_name text,
   address text,
   category text,
@@ -28,6 +29,9 @@ create table if not exists events (
   image_file text,
   created_at timestamptz not null default now()
 );
+
+-- Databases created before the end time existed: add the column in place (no-op on fresh ones).
+alter table events add column if not exists "end" timestamptz;
 
 create index if not exists events_start_idx on events (start);
 create index if not exists events_organizer_slug_idx on events (organizer_slug);

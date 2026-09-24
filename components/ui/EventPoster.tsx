@@ -9,6 +9,9 @@ import type { Category } from "./EventCard";
  * photo, not chrome UI) with a couple of soft wave shapes and the event's
  * own title, so every "photo-less" event still reads at a glance and
  * different categories are visually distinct in a list.
+ *
+ * Two shapes: `poster` (16:9, the title's first words) for the detail hero and
+ * the publish preview; `thumb` (portrait, the title's initials) for the list cards.
  */
 const CATEGORY_COLORS: Record<Category, string> = {
   Sport: "#2E7D5B",
@@ -18,6 +21,8 @@ const CATEGORY_COLORS: Record<Category, string> = {
   "Study & Career": "#2B6CB0",
   Social: "#D9A441",
 };
+
+export type PosterVariant = "poster" | "thumb";
 
 function lighten(hex: string, amount: number): string {
   const normalized = hex.replace("#", "");
@@ -35,10 +40,53 @@ function fontSizeForWord(word: string): number {
   return 46;
 }
 
-export function EventPoster({ category, title, className }: { category: Category; title: string; className?: string }) {
+/** "HEAT - Bad Bunny Edition" → "HB": the first letters of the first two words that carry letters. */
+function initialsOf(title: string): string {
+  const words = title
+    .trim()
+    .split(/\s+/)
+    .filter((word) => /\p{L}|\p{N}/u.test(word));
+  const letters = words.slice(0, 2).map((word) => Array.from(word).find((char) => /\p{L}|\p{N}/u.test(char)) ?? "");
+  return (letters.join("") || title.slice(0, 1) || "?").toUpperCase();
+}
+
+export function EventPoster({
+  category,
+  title,
+  variant = "poster",
+  className,
+}: {
+  category: Category;
+  title: string;
+  variant?: PosterVariant;
+  className?: string;
+}) {
   const baseColor = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.Social;
   const tintA = lighten(baseColor, 0.3);
   const tintB = lighten(baseColor, 0.45);
+
+  if (variant === "thumb") {
+    return (
+      <svg viewBox="0 0 88 110" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" className={className} role="img" aria-label={title}>
+        <rect x={0} y={0} width={88} height={110} fill={baseColor} />
+        <path d="M-10,72 C18,52 40,92 66,64 C80,50 92,70 98,66 L98,120 L-10,120 Z" fill={tintA} opacity={0.55} />
+        <path d="M-10,30 C18,8 44,42 72,18 C84,8 92,20 98,16 L98,-10 L-10,-10 Z" fill={tintB} opacity={0.5} />
+        <text
+          x="50%"
+          y="53%"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#ffffff"
+          fontSize={34}
+          fontWeight={800}
+          fontFamily="var(--font-display)"
+          letterSpacing="-0.02em"
+        >
+          {initialsOf(title)}
+        </text>
+      </svg>
+    );
+  }
 
   const words = title.trim().split(/\s+/).filter(Boolean);
   const firstWord = (words[0] ?? "").toUpperCase();
@@ -83,8 +131,8 @@ export function EventPoster({ category, title, className }: { category: Category
   );
 }
 
-/** A real uploaded photo url, or the deterministic category poster. Fixture `demo-poster:` markers are not urls. */
-export function resolveEventImage(image: string | undefined | null, category: Category, title: string): string | ReactNode {
+/** A real uploaded photo url, or the deterministic category poster in the asked-for shape. Fixture `demo-poster:` markers are not urls. */
+export function resolveEventImage(image: string | undefined | null, category: Category, title: string, variant: PosterVariant = "poster"): string | ReactNode {
   if (image && !image.startsWith("demo-poster:")) return image;
-  return <EventPoster category={category} title={title} />;
+  return <EventPoster category={category} title={title} variant={variant} />;
 }

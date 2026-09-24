@@ -8,22 +8,21 @@ export function Bone({ className }: { className?: string }) {
   return <div aria-hidden="true" className={cx("animate-pulse rounded-lg bg-surface-sunken", className)} />;
 }
 
-/** An EventCard with its poster on top. */
+/** An EventCard: the thumbnail on the left, time, title, meta and tags. */
 export function SkeletonCard() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface-raised">
-      <Bone className="aspect-video w-full rounded-none" />
-      <div className="flex gap-3 p-3">
-        <Bone className="h-5 w-[50px]" />
-        <div className="flex flex-1 flex-col gap-2">
-          <Bone className="h-4 w-3/4" />
-          <Bone className="h-3 w-1/2" />
-          <div className="mt-0.5 flex gap-1">
-            <Bone className="h-[22px] w-16" />
-            <Bone className="h-[22px] w-28" />
-          </div>
+    <div className="flex gap-3 rounded-2xl border border-line bg-surface-raised p-3">
+      <Bone className="h-[108px] w-[84px] flex-none rounded-xl" />
+      <div className="flex flex-1 flex-col gap-2">
+        <Bone className="h-5 w-14" />
+        <Bone className="h-4 w-3/4" />
+        <Bone className="h-3 w-1/2" />
+        <div className="mt-0.5 flex gap-1">
+          <Bone className="h-[22px] w-16" />
+          <Bone className="h-[22px] w-28" />
         </div>
       </div>
+      <Bone className="h-[22px] w-12 flex-none" />
     </div>
   );
 }

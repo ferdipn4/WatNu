@@ -160,7 +160,7 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
         organizer={event.organizerName}
         category={event.category}
         price={event.price}
-        image={resolveEventImage(event.image, event.category, event.title)}
+        image={resolveEventImage(event.image, event.category, event.title, "thumb")}
         newcomers={event.newcomers}
         repeats={event.recurrence}
         cancelled={event.cancelled}

@@ -367,7 +367,7 @@ export function HomeScreen({ events }: { events: HomeEvent[] }) {
                       newcomers={event.newcomers}
                       repeats={event.repeats}
                       cancelled={event.cancelled}
-                      image={resolveEventImage(event.image, event.category, event.title)}
+                      image={resolveEventImage(event.image, event.category, event.title, "thumb")}
                       saved={savedIds.has(event.id)}
                       onSave={onSaveFor(event.id)}
                       onClick={() => router.push(event.repeats ? `/e/${event.id}?on=${event.date}` : `/e/${event.id}`)}

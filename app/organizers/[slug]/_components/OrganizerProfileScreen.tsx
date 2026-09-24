@@ -241,7 +241,7 @@ export function OrganizerProfileScreen({ organizer, events }: { organizer: ViewO
                   newcomers={event.newcomers}
                   repeats={event.recurrence}
                   cancelled={event.cancelled}
-                  image={resolveEventImage(event.image, event.category, event.title)}
+                  image={resolveEventImage(event.image, event.category, event.title, "thumb")}
                   saved={savedIds.has(event.id)}
                   onSave={saveOff ? null : saveSoon ? () => showSoon() : (saved) => handleSave(event.id, saved)}
                   onClick={() => router.push(eventHref(event))}

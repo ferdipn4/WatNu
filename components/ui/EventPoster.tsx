@@ -10,8 +10,8 @@ import type { Category } from "./EventCard";
  * own title, so every "photo-less" event still reads at a glance and
  * different categories are visually distinct in a list.
  *
- * Two shapes: `poster` (16:9, the title's first words) for the detail hero and
- * the publish preview; `thumb` (portrait, the title's initials) for the list cards.
+ * Two shapes: `poster` (16:9) for the detail hero and the publish preview;
+ * `thumb` (square, the same words smaller) for the list cards.
  */
 const CATEGORY_COLORS: Record<Category, string> = {
   Sport: "#2E7D5B",
@@ -40,16 +40,6 @@ function fontSizeForWord(word: string): number {
   return 46;
 }
 
-/** "HEAT - Bad Bunny Edition" → "HB": the first letters of the first two words that carry letters. */
-function initialsOf(title: string): string {
-  const words = title
-    .trim()
-    .split(/\s+/)
-    .filter((word) => /\p{L}|\p{N}/u.test(word));
-  const letters = words.slice(0, 2).map((word) => Array.from(word).find((char) => /\p{L}|\p{N}/u.test(char)) ?? "");
-  return (letters.join("") || title.slice(0, 1) || "?").toUpperCase();
-}
-
 export function EventPoster({
   category,
   title,
@@ -65,32 +55,46 @@ export function EventPoster({
   const tintA = lighten(baseColor, 0.3);
   const tintB = lighten(baseColor, 0.45);
 
+  // Words with letters or digits only: "HEAT - Bad Bunny Edition" reads HEAT / BAD, not HEAT / -.
+  const words = title
+    .trim()
+    .split(/\s+/)
+    .filter((word) => /\p{L}|\p{N}/u.test(word));
+  const firstWord = (words[0] ?? "").toUpperCase();
+  const secondWord = words.length > 1 ? words[1].toUpperCase() : null;
+
   if (variant === "thumb") {
+    // The same poster, small: the first word solid, the second outlined, sized so most words fit the width.
+    const thumbSize = (word: string) => (word.length > 12 ? 13 : word.length > 8 ? 17 : word.length > 5 ? 22 : 28);
+    const firstSize = thumbSize(firstWord);
+    const secondSize = secondWord ? thumbSize(secondWord) : firstSize;
     return (
-      <svg viewBox="0 0 88 110" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" className={className} role="img" aria-label={title}>
-        <rect x={0} y={0} width={88} height={110} fill={baseColor} />
-        <path d="M-10,72 C18,52 40,92 66,64 C80,50 92,70 98,66 L98,120 L-10,120 Z" fill={tintA} opacity={0.55} />
-        <path d="M-10,30 C18,8 44,42 72,18 C84,8 92,20 98,16 L98,-10 L-10,-10 Z" fill={tintB} opacity={0.5} />
-        <text
-          x="50%"
-          y="53%"
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="#ffffff"
-          fontSize={34}
-          fontWeight={800}
-          fontFamily="var(--font-display)"
-          letterSpacing="-0.02em"
-        >
-          {initialsOf(title)}
+      <svg viewBox="0 0 120 120" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" className={className} role="img" aria-label={title}>
+        <rect x={0} y={0} width={120} height={120} fill={baseColor} />
+        <path d="M-10,80 C22,58 46,102 76,72 C92,56 104,78 130,72 L130,130 L-10,130 Z" fill={tintA} opacity={0.55} />
+        <path d="M-10,34 C22,10 50,46 82,20 C96,9 108,22 130,18 L130,-10 L-10,-10 Z" fill={tintB} opacity={0.5} />
+        <text x={10} y={secondWord ? 56 : 68} fill="#ffffff" fontSize={firstSize} fontWeight={800} fontFamily="var(--font-display)" letterSpacing="-0.02em">
+          {firstWord}
         </text>
+        {secondWord ? (
+          <text
+            x={10}
+            y={56 + secondSize + 8}
+            fill="#ffffff"
+            fillOpacity={0.16}
+            stroke="#ffffff"
+            strokeWidth={1}
+            fontSize={secondSize}
+            fontWeight={800}
+            fontFamily="var(--font-display)"
+            letterSpacing="-0.02em"
+          >
+            {secondWord}
+          </text>
+        ) : null}
       </svg>
     );
   }
-
-  const words = title.trim().split(/\s+/).filter(Boolean);
-  const firstWord = (words[0] ?? "").toUpperCase();
-  const secondWord = words.length > 1 ? words[1].toUpperCase() : null;
   const firstFontSize = fontSizeForWord(firstWord);
   const secondFontSize = secondWord ? fontSizeForWord(secondWord) : firstFontSize;
 

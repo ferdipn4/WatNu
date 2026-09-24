@@ -25,7 +25,7 @@ export interface EventCardProps {
   /** the organizer's image (their uploaded poster, or the category poster standing in): a url, or an element in previews */
   image?: string | ReactNode;
   /**
-   * `thumb` (default): the image as a portrait thumbnail on the left, so five or six events fit a screen — every list.
+   * `thumb` (default): the image as a 104px square-ish thumbnail on the left, so five events fit a screen — every list.
    * `poster`: the image on top at 16:9 — the publish preview, where the organizer checks their poster.
    */
   layout?: "thumb" | "poster";
@@ -146,7 +146,7 @@ export function EventCard({
   return (
     <Card as={onClick ? "button" : "article"} tight onClick={onClick} className={cx("flex! gap-3", cancelled ? "opacity-60" : null, className)}>
       {image ? (
-        <div className="relative w-[84px] min-h-[108px] flex-none self-stretch overflow-hidden rounded-xl bg-surface-sunken">
+        <div className="relative w-[104px] min-h-[104px] flex-none self-stretch overflow-hidden rounded-xl bg-surface-sunken">
           <div className="absolute inset-0 [&>*]:block [&>*]:h-full [&>*]:w-full [&>*]:object-cover">{imageNode}</div>
           {repeats ? (
             <span aria-hidden="true" className="absolute bottom-1.5 left-1.5 grid h-6 w-6 place-items-center rounded-full bg-ink/80 text-surface backdrop-blur-sm">

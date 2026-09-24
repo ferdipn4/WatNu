@@ -12,7 +12,7 @@ export function Bone({ className }: { className?: string }) {
 export function SkeletonCard() {
   return (
     <div className="flex gap-3 rounded-2xl border border-line bg-surface-raised p-3">
-      <Bone className="h-[108px] w-[84px] flex-none rounded-xl" />
+      <Bone className="h-[108px] w-[104px] flex-none rounded-xl" />
       <div className="flex flex-1 flex-col gap-2">
         <Bone className="h-5 w-14" />
         <Bone className="h-4 w-3/4" />

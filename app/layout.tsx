@@ -2,6 +2,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, DM_Sans } from 'next/font/google';
 import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/next';
 import { ServiceWorker } from '@/app/_components/ServiceWorker';
 import { AuthProvider } from '@/app/_lib/auth';
 import { LocaleProvider } from '@/app/_lib/i18n/provider';
@@ -60,6 +61,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </AuthProvider>
         </LocaleProvider>
         <ServiceWorker />
+        {/* Vercel Web Analytics: cookieless page views (enable it once in the Vercel dashboard); app/_lib/analytics.ts adds the few taps that matter. */}
+        <Analytics />
       </body>
     </html>
   );

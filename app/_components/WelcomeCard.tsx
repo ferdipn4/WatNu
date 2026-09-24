@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
+import { trackEvent } from "@/app/_lib/analytics";
 import { useT } from "@/app/_lib/i18n";
 import { isIos, isStandalone, useInstallPrompt } from "@/app/_lib/install";
 
@@ -42,7 +43,10 @@ export function WelcomeCard() {
 
   async function handleInstall() {
     const accepted = await install();
-    if (accepted) dismiss();
+    if (accepted) {
+      trackEvent("install");
+      dismiss();
+    }
   }
 
   if (!state?.show) return null;

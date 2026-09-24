@@ -55,7 +55,7 @@ const COPY: Record<Locale, Copy> = {
       {
         heading: "Where it runs",
         body: [
-          "Hosted on Vercel; database and images at Supabase. Fonts are served from our own domain. There are no tracking cookies — one cookie remembers your language.",
+          "Hosted on Vercel; database and images at Supabase. Fonts are served from our own domain. Vercel's analytics counts page views and a few taps (a save, a follow, reminders on, an install, a share) without cookies — a hashed identifier that changes daily, no name, no tracking across sites. One cookie remembers your language.",
         ],
       },
     ],
@@ -103,7 +103,7 @@ const COPY: Record<Locale, Copy> = {
       {
         heading: "Waar het draait",
         body: [
-          "Gehost bij Vercel; database en afbeeldingen bij Supabase. Lettertypen komen van ons eigen domein. Er zijn geen trackingcookies — één cookie onthoudt je taal.",
+          "Gehost bij Vercel; database en afbeeldingen bij Supabase. Lettertypen komen van ons eigen domein. De analytics van Vercel telt paginaweergaven en een paar tikken (een opslag, een volger, herinneringen aan, een installatie, een deling) zonder cookies — een gehashte code die dagelijks wisselt, geen naam, geen tracking over sites heen. Eén cookie onthoudt je taal.",
         ],
       },
     ],

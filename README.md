@@ -273,6 +273,23 @@ curl.exe -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/me
 `DELETE /api/events/[id]` take the same header and only touch rows the signed-in
 organizer manages (404 for anyone else's).
 
+## Analytics and link previews
+
+Vercel Web Analytics counts page views without cookies once it is switched on
+for the project in the Vercel dashboard (`<Analytics />` in `app/layout.tsx`).
+`app/_lib/analytics.ts` adds five product events — `event_save`,
+`organizer_follow`, `reminders_on`, `install`, `event_share` — with no
+properties that identify anyone (custom events show on Vercel's Pro plan).
+`/about` tells users about it.
+
+Every page has an Open Graph card (`app/_lib/og.tsx` + the `opengraph-image.tsx`
+routes): an event shows its poster, date and place; an organizer its logo and
+what is coming up; Home and every other page show this week's highlights — up to
+four events, one per organizer first — so a shared link in a group chat shows
+the week itself. `.npmrc` pins `legacy-peer-deps` because `@vercel/analytics`
+lists optional peers (SvelteKit, Vue, Remix) whose own peers clash with vitest's
+vite; none of them is used.
+
 ## Checks that run on every push
 
 `npm run check` = `tsc --noEmit`, `eslint`, and the unit tests in `tests/`

@@ -14,6 +14,7 @@ import { WarningPanel } from "@/components/ui/WarningPanel";
 import { isOff, isSoon } from "@/lib/features";
 import { expandOccurrences } from "@/lib/occurrences";
 import { TopBar } from "@/app/_components/TopBar";
+import { trackEvent } from "@/app/_lib/analytics";
 import { useAuth } from "@/app/_lib/auth";
 import { postJson } from "@/app/_lib/http";
 import { dateNames, useT } from "@/app/_lib/i18n";
@@ -107,6 +108,7 @@ export function EventDetailScreen({
 
   async function handleShare() {
     const url = window.location.href;
+    trackEvent("event_share");
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({ title: event.title, url });

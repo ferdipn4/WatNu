@@ -15,6 +15,7 @@ import { ScreenHeader } from "@/app/_components/ScreenHeader";
 import { TabScreen } from "@/app/_components/TabScreen";
 import { getJson } from "@/app/_lib/http";
 import { useT } from "@/app/_lib/i18n";
+import { trackEvent } from "@/app/_lib/analytics";
 import { enablePush, getPushState, type PushState } from "@/app/_lib/push";
 import { getFollowedOrganizers, getSavedEventIds, toggleSavedEvent } from "@/app/_lib/store";
 import type { ApiEvent } from "@/app/_lib/types";
@@ -73,7 +74,10 @@ export function MineScreen({ events, organizers }: { events: ViewEvent[]; organi
     try {
       const state = await enablePush(getSavedEventIds(), t.locale);
       setPush(state);
-      if (state === "on") show(t("push.on"), "done");
+      if (state === "on") {
+        show(t("push.on"), "done");
+        trackEvent("reminders_on");
+      }
       else if (state === "denied") show(t("push.denied"), "info");
       else if (state === "unsupported") show(t("push.unsupported"), "info");
     } catch {

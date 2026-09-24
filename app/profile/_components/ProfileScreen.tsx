@@ -17,6 +17,7 @@ import { useAuth } from "@/app/_lib/auth";
 import { signInHref } from "@/app/_lib/auth-paths";
 import { LOCALES, useLocale, useT, type Locale } from "@/app/_lib/i18n";
 import { clearSavedAndFollowed, getDisplayName, getFollowedOrganizers, getSavedEventIds, setDisplayName } from "@/app/_lib/store";
+import { trackEvent } from "@/app/_lib/analytics";
 import { disablePush, enablePush, getPushState, type PushState } from "@/app/_lib/push";
 import { getThemeMode, setThemeMode, type ThemeMode } from "@/app/_lib/theme";
 import { useToast } from "@/app/_lib/use-toast";
@@ -84,7 +85,10 @@ export function ProfileScreen() {
     try {
       const state = on ? await enablePush(getSavedEventIds(), locale) : await disablePush();
       setPush(state);
-      if (state === "on") show(t("push.on"), "done");
+      if (state === "on") {
+        show(t("push.on"), "done");
+        if (on) trackEvent("reminders_on");
+      }
       else if (state === "denied") show(t("push.denied"), "info");
       else if (state === "off" && !on) show(t("push.off"));
     } catch {

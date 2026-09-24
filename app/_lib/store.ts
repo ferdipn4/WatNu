@@ -5,6 +5,7 @@
  * keep your own React state for reactivity. Saves and follows also feed
  * the organizer's stats (app/_lib/metrics.ts), anonymously.
  */
+import { trackEvent } from "./analytics";
 import { recordMetric } from "./metrics";
 import { syncPushSavedEvents } from "./push";
 
@@ -57,6 +58,7 @@ export function isFollowingOrganizer(slug: string): boolean {
 export function toggleFollowOrganizer(slug: string): boolean {
   const following = toggleInList(FOLLOWED_ORGANIZERS_KEY, slug);
   recordMetric(following ? "organizer_follow" : "organizer_unfollow", slug);
+  if (following) trackEvent("organizer_follow");
   return following;
 }
 
@@ -71,6 +73,7 @@ export function isEventSaved(id: string): boolean {
 export function toggleSavedEvent(id: string): boolean {
   const saved = toggleInList(SAVED_EVENTS_KEY, id);
   recordMetric(saved ? "event_save" : "event_unsave", id);
+  if (saved) trackEvent("event_save");
   // The reminders on this phone follow what it saved (a no-op until reminders are on).
   syncPushSavedEvents(readList(SAVED_EVENTS_KEY));
   return saved;
